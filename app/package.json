@@ -22,6 +22,9 @@
 	},
 	"license": "MIT",
 	"pnpm": {
+		"overrides": {
+			"@electron/node-gyp": "10.2.0-electron.1"
+		},
 		"onlyBuiltDependencies": [
 			"electron",
 			"electron-winstaller"

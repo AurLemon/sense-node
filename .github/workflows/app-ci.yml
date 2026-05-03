@@ -3,16 +3,16 @@ name: App CI
 on:
   push:
     paths:
-      - 'app/**'
-      - '.github/workflows/app-ci.yml'
-      - '!app/**/README.md'
-      - '!app/README.md'
+      - "app/**"
+      - ".github/workflows/app-ci.yml"
+      - "!app/**/README.md"
+      - "!app/README.md"
   pull_request:
     paths:
-      - 'app/**'
-      - '.github/workflows/app-ci.yml'
-      - '!app/**/README.md'
-      - '!app/README.md'
+      - "app/**"
+      - ".github/workflows/app-ci.yml"
+      - "!app/**/README.md"
+      - "!app/README.md"
 
 permissions:
   contents: read
@@ -28,6 +28,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      # 临时保留这个 Git URL 重写
+      # 原因：
+      # 1. 当前 Electron Forge 7.11.1 依赖链会带入 @electron/rebuild 3.7.2
+      # 2. 这个版本会继续依赖 @electron/node-gyp，并且历史上出现过 Git 依赖抓取问题
+      # 3. 虽然我们已经在 package.json 里用 pnpm.overrides 强制改成 npm registry 版本，
+      #    但这里先继续保留一层兜底，避免锁文件或上游依赖变化后再次走到 git@github.com 的 SSH clone
+      #
+      # 参考：
+      # - pnpm git-hosted dependencies 相关问题：
+      #   https://github.com/pnpm/pnpm/issues/3948
+      # - electron/rebuild release 说明：
+      #   v3.7.0 引入 @electron/node-gyp
+      #   v4.0.1 明确写了 "return to node-gyp (#1185)"
+      #   https://github.com/electron/electron-rebuild/releases
       - name: Rewrite GitHub SSH URLs to HTTPS
         run: |
           git config --global url."https://github.com/".insteadOf git@github.com:
