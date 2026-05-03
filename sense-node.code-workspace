@@ -1,0 +1,25 @@
+{
+  "folders": [
+    {
+      "name": "Root (Repo)",
+      "path": "."
+    },
+    {
+      "name": "Firmware (ESP32S3)",
+      "path": "./firmware"
+    },
+    {
+      "name": "Desktop (Electron)",
+      "path": "./app"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "firmware": true,
+      "app": true,
+      "**/.pio": true,
+      "**/node_modules": true
+    },
+    "platformio-ide.activateProjectOnTextEditorChange": true
+  }
+}
