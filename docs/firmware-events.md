@@ -209,20 +209,97 @@ tap > board_motion > hand_leave > hand_near > hand_hover > idle > unknown
 | 6      | `idle`         |
 | 7      | `unknown`      |
 
-## 7. 当前串口输出字段
+## 7. 串口返回值
 
-| 字段名           | 含义                 |
-| ---------------- | -------------------- |
-| `imu_label`      | IMU 模型原始分类结果 |
-| `imu_confidence` | IMU 模型最高置信度   |
-| `hand_state`     | ToF 当前状态         |
-| `final_event`    | 融合状态机最终输出   |
+Demo 模式下，串口有两类输出：
+
+- `warmup_info`：进入 Demo 且推理窗口未填满时输出一次
+- 常态 CSV：每次 `DemoSerialTick` 输出一行
+
+### 7.1 `warmup_info`
+
+`warming_up` 表示 IMU 推理窗口尚未填满，当前仍在采样阶段，尚未执行有效分类。
+
+输出示例：
+
+```txt
+warmup_info
+model_labels=3
+sample_interval_ms=50
+window_frames=60
+window_fill=8/60
+warmup_target_ms=3000
+warmup_remaining_ms=2600
+dsp_input_frame_size=360
+nn_input_frame_size=78
+classifier_threshold=0.6000
+cpu_mhz=240
+free_heap=278000
+min_free_heap=275000
+max_alloc_heap=110000
+```
+
+字段说明：
+
+| 字段名                 | 含义                                     |
+| ---------------------- | ---------------------------------------- |
+| `model_labels`         | 模型类别数                               |
+| `sample_interval_ms`   | 采样间隔，单位 `ms`                      |
+| `window_frames`        | 推理窗口总帧数                           |
+| `window_fill`          | 当前已采样帧数 / 总帧数                  |
+| `warmup_target_ms`     | 填满一个推理窗口所需总时长，单位 `ms`    |
+| `warmup_remaining_ms`  | 距离窗口填满剩余时长，单位 `ms`          |
+| `dsp_input_frame_size` | DSP 输入维度总长度                       |
+| `nn_input_frame_size`  | 神经网络输入维度长度                     |
+| `classifier_threshold` | 当前置信度门限                           |
+| `cpu_mhz`              | ESP32-S3 当前 CPU 频率，单位 `MHz`       |
+| `free_heap`            | 当前可用堆内存，单位 `bytes`             |
+| `min_free_heap`        | 运行至今最小可用堆内存，单位 `bytes`     |
+| `max_alloc_heap`       | 当前可一次性分配的最大堆块，单位 `bytes` |
+
+### 7.2 常态 CSV
 
 当前输出顺序：
 
 ```txt
-tof, ax, ay, az, gx, gy, gz, uptime, imu_label, imu_confidence, hand_state, final_event
+tof, ax, ay, az, gx, gy, gz, uptime, imu_label, imu_confidence, hand_state, motion_event, final_event, dsp_ms, classification_ms, postprocessing_ms, window_fill, cpu_mhz, free_heap, min_free_heap, max_alloc_heap
 ```
+
+字段说明：
+
+| 序号 | 字段名              | 含义                                                       |
+| ---- | ------------------- | ---------------------------------------------------------- |
+| 1    | `tof`               | ToF 距离，单位 `mm`。无效时输出 `-1`                       |
+| 2    | `ax`                | X 轴加速度                                                 |
+| 3    | `ay`                | Y 轴加速度                                                 |
+| 4    | `az`                | Z 轴加速度                                                 |
+| 5    | `gx`                | X 轴角速度                                                 |
+| 6    | `gy`                | Y 轴角速度                                                 |
+| 7    | `gz`                | Z 轴角速度                                                 |
+| 8    | `uptime`            | 设备运行时间，格式为 `Xs`                                  |
+| 9    | `imu_label`         | IMU 模型原始分类结果。窗口未满时输出 `warming_up`          |
+| 10   | `imu_confidence`    | IMU 模型最高置信度                                         |
+| 11   | `hand_state`        | ToF 当前状态：`no_hand` / `hand_hover` / `hand_near`       |
+| 12   | `motion_event`      | IMU 后处理事件：`idle` / `tap` / `board_motion` / `reject` |
+| 13   | `final_event`       | 融合状态机最终输出。窗口未满时输出 `warming_up`            |
+| 14   | `dsp_ms`            | 当前一次推理的 DSP 耗时，单位 `ms`                         |
+| 15   | `classification_ms` | 当前一次推理的分类耗时，单位 `ms`                          |
+| 16   | `postprocessing_ms` | 当前一次推理的后处理耗时，单位 `ms`                        |
+| 17   | `window_fill`       | 当前窗口填充进度，格式为 `已采样帧数/总帧数`               |
+| 18   | `cpu_mhz`           | ESP32-S3 当前 CPU 频率，单位 `MHz`                         |
+| 19   | `free_heap`         | 当前可用堆内存，单位 `bytes`                               |
+| 20   | `min_free_heap`     | 运行至今最小可用堆内存，单位 `bytes`                       |
+| 21   | `max_alloc_heap`    | 当前可一次性分配的最大堆块，单位 `bytes`                   |
+
+取值补充：
+
+| 字段名         | 说明                                              |
+| -------------- | ------------------------------------------------- |
+| `imu_label`    | 来自 Edge Impulse 原始分类结果                    |
+| `motion_event` | 来自 IMU 后处理结果                               |
+| `hand_state`   | 来自 ToF 状态机                                   |
+| `final_event`  | 来自融合状态机                                    |
+| `window_fill`  | 推理窗口填充进度，填满后才能产生稳定 IMU 推理结果 |
 
 ## 8. 后续接入建议字段
 

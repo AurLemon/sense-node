@@ -29,6 +29,12 @@ struct ImuInferenceCompletedEvent
   bool ready = false;
   bool windowReady = false;
   MotionEvent motionEvent = MotionEvent::Reject;
+  uint16_t collectedFrames = 0;
+  uint16_t requiredFrames = 0;
+  uint16_t sampleIntervalMs = 0;
+  uint16_t dspInputFrameSize = 0;
+  uint16_t nnInputFrameSize = 0;
+  float classifierThreshold = 0.0f;
   float confidence = 0.0f;
   char rawLabel[24]{};
   float accMag = 0.0f;
@@ -37,6 +43,10 @@ struct ImuInferenceCompletedEvent
   float motionEnergy = 0.0f;
   float peakAccDelta = 0.0f;
   unsigned long eventDurationMs = 0;
+  int dspMs = 0;
+  int classificationMs = 0;
+  int anomalyMs = 0;
+  int postprocessingMs = 0;
   bool quietDetected = false;
   bool activeDetected = false;
   bool impactDetected = false;

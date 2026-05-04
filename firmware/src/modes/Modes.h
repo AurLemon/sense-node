@@ -16,6 +16,7 @@ private:
   static void handleSensorFrameSampled(const SensorFrameSampledEvent &event, void *context);
   static void handleDemoSerialTick(const DemoSerialTickEvent &event, void *context);
   static void handleFusionDecision(const FusionDecisionEvent &event, void *context);
+  void printWarmupInfo(const DemoSerialTickEvent &event);
   void printFrameToSerial(const SensorFrame &frame);
   void printDemoCsvLine(const DemoSerialTickEvent &event);
   void renderCurrentFrame();
@@ -23,6 +24,7 @@ private:
   Hardware *hardware = nullptr;
   SensorFrame currentFrame{};
   char displayLabel[24] = "warming_up";
+  bool warmupInfoPrinted = false;
 };
 
 class CaptureMode

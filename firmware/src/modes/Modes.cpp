@@ -1,5 +1,7 @@
 #include "modes/Modes.h"
 
+#include <ESP.h>
+
 void DemoMode::begin(EventBus &eventBus, Hardware &targetHardware)
 {
   hardware = &targetHardware;
@@ -23,6 +25,7 @@ void DemoMode::handleModeChanged(const ModeChangedEvent &event, void *context)
     Serial.println("Demo mode");
   }
   self->currentFrame = SensorFrame{};
+  self->warmupInfoPrinted = false;
   strncpy(self->displayLabel, "warming_up", sizeof(self->displayLabel) - 1);
   self->displayLabel[sizeof(self->displayLabel) - 1] = '\0';
   self->renderCurrentFrame();
@@ -43,6 +46,11 @@ void DemoMode::handleSensorFrameSampled(const SensorFrameSampledEvent &event, vo
 void DemoMode::handleDemoSerialTick(const DemoSerialTickEvent &event, void *context)
 {
   auto *self = static_cast<DemoMode *>(context);
+  if (!self->warmupInfoPrinted && (!event.imu.ready || !event.imu.windowReady))
+  {
+    self->printWarmupInfo(event);
+    self->warmupInfoPrinted = true;
+  }
   self->printDemoCsvLine(event);
 }
 
@@ -92,12 +100,58 @@ void DemoMode::printFrameToSerial(const SensorFrame &frame)
   }
 }
 
+void DemoMode::printWarmupInfo(const DemoSerialTickEvent &event)
+{
+  const uint16_t requiredFrames = event.imu.requiredFrames;
+  const uint16_t collectedFrames = event.imu.collectedFrames;
+  const uint16_t remainingFrames =
+      collectedFrames < requiredFrames ? requiredFrames - collectedFrames : 0;
+  const unsigned long warmupTargetMs =
+      static_cast<unsigned long>(requiredFrames) * event.imu.sampleIntervalMs;
+  const unsigned long remainingMs =
+      static_cast<unsigned long>(remainingFrames) * event.imu.sampleIntervalMs;
+
+  Serial.println("warmup_info");
+  Serial.print("model_labels=");
+  Serial.println(3);
+  Serial.print("sample_interval_ms=");
+  Serial.println(event.imu.sampleIntervalMs);
+  Serial.print("window_frames=");
+  Serial.println(requiredFrames);
+  Serial.print("window_fill=");
+  Serial.print(collectedFrames);
+  Serial.print('/');
+  Serial.println(requiredFrames);
+  Serial.print("warmup_target_ms=");
+  Serial.println(warmupTargetMs);
+  Serial.print("warmup_remaining_ms=");
+  Serial.println(remainingMs);
+  Serial.print("dsp_input_frame_size=");
+  Serial.println(event.imu.dspInputFrameSize);
+  Serial.print("nn_input_frame_size=");
+  Serial.println(event.imu.nnInputFrameSize);
+  Serial.print("classifier_threshold=");
+  Serial.println(event.imu.classifierThreshold, 4);
+  Serial.print("cpu_mhz=");
+  Serial.println(ESP.getCpuFreqMHz());
+  Serial.print("free_heap=");
+  Serial.println(ESP.getFreeHeap());
+  Serial.print("min_free_heap=");
+  Serial.println(ESP.getMinFreeHeap());
+  Serial.print("max_alloc_heap=");
+  Serial.println(ESP.getMaxAllocHeap());
+}
+
 void DemoMode::printDemoCsvLine(const DemoSerialTickEvent &event)
 {
   const SensorFrame &frame = event.current;
   const unsigned long uptimeMs = millis();
   const unsigned long uptimeWholeSeconds = uptimeMs / 1000;
   const unsigned long uptimeTenths = (uptimeMs % 1000) / 100;
+  const uint32_t cpuMhz = ESP.getCpuFreqMHz();
+  const uint32_t freeHeap = ESP.getFreeHeap();
+  const uint32_t minFreeHeap = ESP.getMinFreeHeap();
+  const uint32_t maxAllocHeap = ESP.getMaxAllocHeap();
 
   if (frame.tofValid)
   {
@@ -141,7 +195,27 @@ void DemoMode::printDemoCsvLine(const DemoSerialTickEvent &event)
   Serial.print(',');
   Serial.print(toString(event.hand.handState));
   Serial.print(',');
-  Serial.println(event.fusion.ready ? toString(event.fusion.finalEvent) : "warming_up");
+  Serial.print(toString(event.imu.motionEvent));
+  Serial.print(',');
+  Serial.print(event.fusion.ready ? toString(event.fusion.finalEvent) : "warming_up");
+  Serial.print(',');
+  Serial.print(event.imu.dspMs);
+  Serial.print(',');
+  Serial.print(event.imu.classificationMs);
+  Serial.print(',');
+  Serial.print(event.imu.postprocessingMs);
+  Serial.print(',');
+  Serial.print(event.imu.collectedFrames);
+  Serial.print('/');
+  Serial.print(event.imu.requiredFrames);
+  Serial.print(',');
+  Serial.print(cpuMhz);
+  Serial.print(',');
+  Serial.print(freeHeap);
+  Serial.print(',');
+  Serial.print(minFreeHeap);
+  Serial.print(',');
+  Serial.println(maxAllocHeap);
 }
 
 void DemoMode::renderCurrentFrame()

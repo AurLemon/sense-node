@@ -74,6 +74,11 @@ void ImuInferenceService::reset()
     memset(accDeltaHistory, 0, sizeof(float) * kFrameCapacity);
   }
   latestEvent = ImuInferenceCompletedEvent{};
+  latestEvent.requiredFrames = static_cast<uint16_t>(kFrameCapacity);
+  latestEvent.sampleIntervalMs = EI_CLASSIFIER_INTERVAL_MS;
+  latestEvent.dspInputFrameSize = EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE;
+  latestEvent.nnInputFrameSize = EI_CLASSIFIER_NN_INPUT_FRAME_SIZE;
+  latestEvent.classifierThreshold = EI_CLASSIFIER_THRESHOLD;
 }
 
 void ImuInferenceService::appendFrame(const SensorFrame &frame)
@@ -150,6 +155,12 @@ void ImuInferenceService::emitCurrentState()
   if (eventBus != nullptr)
   {
     latestEvent.windowReady = framesCollected >= kFrameCapacity;
+    latestEvent.collectedFrames = static_cast<uint16_t>(framesCollected);
+    latestEvent.requiredFrames = static_cast<uint16_t>(kFrameCapacity);
+    latestEvent.sampleIntervalMs = EI_CLASSIFIER_INTERVAL_MS;
+    latestEvent.dspInputFrameSize = EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE;
+    latestEvent.nnInputFrameSize = EI_CLASSIFIER_NN_INPUT_FRAME_SIZE;
+    latestEvent.classifierThreshold = EI_CLASSIFIER_THRESHOLD;
     eventBus->emitImuInferenceCompleted(latestEvent);
   }
 }
@@ -203,6 +214,10 @@ void ImuInferenceService::runInference()
   latestEvent.ready = true;
   latestEvent.motionEvent = inferredMotion;
   latestEvent.confidence = bestScore;
+  latestEvent.dspMs = result.timing.dsp;
+  latestEvent.classificationMs = result.timing.classification;
+  latestEvent.anomalyMs = result.timing.anomaly;
+  latestEvent.postprocessingMs = result.timing.postprocessing;
   strncpy(latestEvent.rawLabel, rawLabel, sizeof(latestEvent.rawLabel) - 1);
   latestEvent.rawLabel[sizeof(latestEvent.rawLabel) - 1] = '\0';
 
