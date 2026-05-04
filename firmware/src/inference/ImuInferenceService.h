@@ -4,11 +4,11 @@
 
 #include "events/EventBus.h"
 
-class InferenceService
+class ImuInferenceService
 {
 public:
   void begin(EventBus &eventBus);
-  const InferenceCompletedEvent &getLatestEvent() const;
+  const ImuInferenceCompletedEvent &getLatestEvent() const;
 
 private:
   static void handleModeChanged(const ModeChangedEvent &event, void *context);
@@ -16,12 +16,14 @@ private:
 
   void reset();
   void appendFrame(const SensorFrame &frame);
-  void emitCurrentState();
   void runInference();
+  void emitCurrentState();
 
   EventBus *eventBus = nullptr;
   size_t framesCollected = 0;
   size_t featureBufferLength = 0;
   float *featureBuffer = nullptr;
-  InferenceCompletedEvent latestEvent{};
+  float *accDeltaHistory = nullptr;
+  unsigned long activeDurationMs = 0;
+  ImuInferenceCompletedEvent latestEvent{};
 };

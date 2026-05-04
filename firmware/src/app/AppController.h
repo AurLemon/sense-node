@@ -4,7 +4,9 @@
 
 #include "events/EventBus.h"
 #include "hardware/Hardware.h"
-#include "inference/InferenceService.h"
+#include "inference/FusionStateMachineService.h"
+#include "inference/ImuInferenceService.h"
+#include "inference/TofHandStateService.h"
 #include "modes/Modes.h"
 
 class AppController
@@ -18,7 +20,9 @@ private:
 
   EventBus eventBus;
   Hardware hardware;
-  InferenceService inferenceService;
+  ImuInferenceService imuInferenceService;
+  TofHandStateService tofHandStateService;
+  FusionStateMachineService fusionStateMachineService;
   DemoMode demoMode;
   CaptureMode captureMode;
   AppMode currentMode = AppMode::Demo;

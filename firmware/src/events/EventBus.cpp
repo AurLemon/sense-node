@@ -39,9 +39,48 @@ void EventBus::onDemoSerialTick(DemoSerialTickHandler handler, void *context)
   }
 }
 
-void EventBus::onInferenceCompleted(InferenceCompletedHandler handler, void *context)
+void EventBus::onImuInferenceCompleted(ImuInferenceCompletedHandler handler, void *context)
 {
-  for (auto &subscription : inferenceHandlers)
+  for (auto &subscription : imuInferenceHandlers)
+  {
+    if (subscription.handler == nullptr)
+    {
+      subscription.handler = handler;
+      subscription.context = context;
+      return;
+    }
+  }
+}
+
+void EventBus::onHandStateUpdated(HandStateUpdatedHandler handler, void *context)
+{
+  for (auto &subscription : handStateHandlers)
+  {
+    if (subscription.handler == nullptr)
+    {
+      subscription.handler = handler;
+      subscription.context = context;
+      return;
+    }
+  }
+}
+
+void EventBus::onHandLeaveDetected(HandLeaveDetectedHandler handler, void *context)
+{
+  for (auto &subscription : handLeaveHandlers)
+  {
+    if (subscription.handler == nullptr)
+    {
+      subscription.handler = handler;
+      subscription.context = context;
+      return;
+    }
+  }
+}
+
+void EventBus::onFusionDecision(FusionDecisionHandler handler, void *context)
+{
+  for (auto &subscription : fusionHandlers)
   {
     if (subscription.handler == nullptr)
     {
@@ -85,9 +124,42 @@ void EventBus::emitDemoSerialTick(const DemoSerialTickEvent &event)
   }
 }
 
-void EventBus::emitInferenceCompleted(const InferenceCompletedEvent &event)
+void EventBus::emitImuInferenceCompleted(const ImuInferenceCompletedEvent &event)
 {
-  for (const auto &subscription : inferenceHandlers)
+  for (const auto &subscription : imuInferenceHandlers)
+  {
+    if (subscription.handler != nullptr)
+    {
+      subscription.handler(event, subscription.context);
+    }
+  }
+}
+
+void EventBus::emitHandStateUpdated(const HandStateUpdatedEvent &event)
+{
+  for (const auto &subscription : handStateHandlers)
+  {
+    if (subscription.handler != nullptr)
+    {
+      subscription.handler(event, subscription.context);
+    }
+  }
+}
+
+void EventBus::emitHandLeaveDetected(const HandLeaveDetectedEvent &event)
+{
+  for (const auto &subscription : handLeaveHandlers)
+  {
+    if (subscription.handler != nullptr)
+    {
+      subscription.handler(event, subscription.context);
+    }
+  }
+}
+
+void EventBus::emitFusionDecision(const FusionDecisionEvent &event)
+{
+  for (const auto &subscription : fusionHandlers)
   {
     if (subscription.handler != nullptr)
     {

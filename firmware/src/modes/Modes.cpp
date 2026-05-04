@@ -6,7 +6,7 @@ void DemoMode::begin(EventBus &eventBus, Hardware &targetHardware)
   eventBus.onModeChanged(handleModeChanged, this);
   eventBus.onSensorFrameSampled(handleSensorFrameSampled, this);
   eventBus.onDemoSerialTick(handleDemoSerialTick, this);
-  eventBus.onInferenceCompleted(handleInferenceCompleted, this);
+  eventBus.onFusionDecision(handleFusionDecision, this);
 }
 
 void DemoMode::handleModeChanged(const ModeChangedEvent &event, void *context)
@@ -46,10 +46,10 @@ void DemoMode::handleDemoSerialTick(const DemoSerialTickEvent &event, void *cont
   self->printDemoCsvLine(event);
 }
 
-void DemoMode::handleInferenceCompleted(const InferenceCompletedEvent &event, void *context)
+void DemoMode::handleFusionDecision(const FusionDecisionEvent &event, void *context)
 {
   auto *self = static_cast<DemoMode *>(context);
-  const char *nextLabel = event.ready ? event.displayLabel : "warming_up";
+  const char *nextLabel = event.ready ? toString(event.finalEvent) : "warming_up";
   strncpy(self->displayLabel, nextLabel, sizeof(self->displayLabel) - 1);
   self->displayLabel[sizeof(self->displayLabel) - 1] = '\0';
   self->renderCurrentFrame();
@@ -135,7 +135,13 @@ void DemoMode::printDemoCsvLine(const DemoSerialTickEvent &event)
   Serial.print(uptimeTenths);
   Serial.print('s');
   Serial.print(',');
-  Serial.println(event.inference.ready ? event.inference.displayLabel : "warming_up");
+  Serial.print(event.imu.ready && event.imu.windowReady ? event.imu.rawLabel : "warming_up");
+  Serial.print(',');
+  Serial.print(event.imu.ready ? event.imu.confidence : 0.0f, 4);
+  Serial.print(',');
+  Serial.print(toString(event.hand.handState));
+  Serial.print(',');
+  Serial.println(event.fusion.ready ? toString(event.fusion.finalEvent) : "warming_up");
 }
 
 void DemoMode::renderCurrentFrame()

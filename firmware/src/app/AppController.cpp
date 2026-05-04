@@ -18,7 +18,9 @@ void AppController::setup()
   hardware.beginBase();
   hardware.beginSensors(verboseBoot);
 
-  inferenceService.begin(eventBus);
+  imuInferenceService.begin(eventBus);
+  tofHandStateService.begin(eventBus);
+  fusionStateMachineService.begin(eventBus);
   demoMode.begin(eventBus, hardware);
   captureMode.begin(eventBus, hardware);
   eventBus.emitModeChanged({currentMode, currentMode});
@@ -26,7 +28,9 @@ void AppController::setup()
   previousFrame = latestFrame;
   latestFrame = hardware.readSensors();
   eventBus.emitSensorFrameSampled({latestFrame, previousFrame, currentMode});
-  eventBus.emitDemoSerialTick({latestFrame, InferenceCompletedEvent{}});
+  eventBus.emitDemoSerialTick(
+      {latestFrame, imuInferenceService.getLatestEvent(), tofHandStateService.getLatestEvent(),
+       fusionStateMachineService.getLatestEvent()});
 
   lastSampleMs = millis();
   lastDemoSerialMs = millis();
@@ -50,7 +54,9 @@ void AppController::loop()
     if (currentMode == AppMode::Demo)
     {
       lastDemoSerialMs = now;
-      eventBus.emitDemoSerialTick({latestFrame, inferenceService.getLatestEvent()});
+      eventBus.emitDemoSerialTick(
+          {latestFrame, imuInferenceService.getLatestEvent(), tofHandStateService.getLatestEvent(),
+           fusionStateMachineService.getLatestEvent()});
     }
   }
 
