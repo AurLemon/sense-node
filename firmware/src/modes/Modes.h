@@ -14,9 +14,14 @@ private:
   static void handleModeChanged(const ModeChangedEvent &event, void *context);
   static void handleSensorFrameSampled(const SensorFrameSampledEvent &event, void *context);
   static void handleDemoSerialTick(const DemoSerialTickEvent &event, void *context);
+  static void handleInferenceCompleted(const InferenceCompletedEvent &event, void *context);
   void printFrameToSerial(const SensorFrame &frame);
+  void printDemoCsvLine(const DemoSerialTickEvent &event);
+  void renderCurrentFrame();
 
   Hardware *hardware = nullptr;
+  SensorFrame currentFrame{};
+  char displayLabel[24] = "warming_up";
 };
 
 class CaptureMode

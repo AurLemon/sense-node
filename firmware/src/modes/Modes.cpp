@@ -6,6 +6,7 @@ void DemoMode::begin(EventBus &eventBus, Hardware &targetHardware)
   eventBus.onModeChanged(handleModeChanged, this);
   eventBus.onSensorFrameSampled(handleSensorFrameSampled, this);
   eventBus.onDemoSerialTick(handleDemoSerialTick, this);
+  eventBus.onInferenceCompleted(handleInferenceCompleted, this);
 }
 
 void DemoMode::handleModeChanged(const ModeChangedEvent &event, void *context)
@@ -21,7 +22,10 @@ void DemoMode::handleModeChanged(const ModeChangedEvent &event, void *context)
     Serial.println();
     Serial.println("Demo mode");
   }
-  self->hardware->renderDemo(SensorFrame{}, SensorFrame{});
+  self->currentFrame = SensorFrame{};
+  strncpy(self->displayLabel, "warming_up", sizeof(self->displayLabel) - 1);
+  self->displayLabel[sizeof(self->displayLabel) - 1] = '\0';
+  self->renderCurrentFrame();
 }
 
 void DemoMode::handleSensorFrameSampled(const SensorFrameSampledEvent &event, void *context)
@@ -32,13 +36,23 @@ void DemoMode::handleSensorFrameSampled(const SensorFrameSampledEvent &event, vo
     return;
   }
 
-  self->hardware->renderDemo(event.current, event.previous);
+  self->currentFrame = event.current;
+  self->renderCurrentFrame();
 }
 
 void DemoMode::handleDemoSerialTick(const DemoSerialTickEvent &event, void *context)
 {
   auto *self = static_cast<DemoMode *>(context);
-  self->printFrameToSerial(event.current);
+  self->printDemoCsvLine(event);
+}
+
+void DemoMode::handleInferenceCompleted(const InferenceCompletedEvent &event, void *context)
+{
+  auto *self = static_cast<DemoMode *>(context);
+  const char *nextLabel = event.ready ? event.displayLabel : "warming_up";
+  strncpy(self->displayLabel, nextLabel, sizeof(self->displayLabel) - 1);
+  self->displayLabel[sizeof(self->displayLabel) - 1] = '\0';
+  self->renderCurrentFrame();
 }
 
 void DemoMode::printFrameToSerial(const SensorFrame &frame)
@@ -76,6 +90,57 @@ void DemoMode::printFrameToSerial(const SensorFrame &frame)
   {
     Serial.println("IMU: --");
   }
+}
+
+void DemoMode::printDemoCsvLine(const DemoSerialTickEvent &event)
+{
+  const SensorFrame &frame = event.current;
+  const unsigned long uptimeMs = millis();
+  const unsigned long uptimeWholeSeconds = uptimeMs / 1000;
+  const unsigned long uptimeTenths = (uptimeMs % 1000) / 100;
+
+  if (frame.tofValid)
+  {
+    Serial.print(frame.tofMm);
+  }
+  else
+  {
+    Serial.print(-1);
+  }
+
+  Serial.print(',');
+
+  if (frame.imuValid)
+  {
+    Serial.print(frame.accel.acceleration.x, 4);
+    Serial.print(',');
+    Serial.print(frame.accel.acceleration.y, 4);
+    Serial.print(',');
+    Serial.print(frame.accel.acceleration.z, 4);
+    Serial.print(',');
+    Serial.print(frame.gyro.gyro.x, 4);
+    Serial.print(',');
+    Serial.print(frame.gyro.gyro.y, 4);
+    Serial.print(',');
+    Serial.print(frame.gyro.gyro.z, 4);
+  }
+  else
+  {
+    Serial.print("-1.0000,-1.0000,-1.0000,-1.0000,-1.0000,-1.0000");
+  }
+
+  Serial.print(',');
+  Serial.print(uptimeWholeSeconds);
+  Serial.print('.');
+  Serial.print(uptimeTenths);
+  Serial.print('s');
+  Serial.print(',');
+  Serial.println(event.inference.ready ? event.inference.displayLabel : "warming_up");
+}
+
+void DemoMode::renderCurrentFrame()
+{
+  hardware->renderDemo(currentFrame, displayLabel);
 }
 
 void CaptureMode::begin(EventBus &eventBus, Hardware &targetHardware)

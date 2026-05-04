@@ -13,50 +13,9 @@ namespace
   constexpr uint8_t kOledAddressPrimary = 0x3C;
   constexpr uint8_t kOledAddressSecondary = 0x3D;
   constexpr uint8_t kTofAddress = 0x29;
+  constexpr uint16_t kTofOutOfRangeMm = 8191;
   constexpr uint8_t kMpuAddressPrimary = 0x68;
   constexpr uint8_t kMpuAddressSecondary = 0x69;
-
-  float squared(float value)
-  {
-    return value * value;
-  }
-
-  const char *getImuMotionLabel(const SensorFrame &current, const SensorFrame &previous)
-  {
-    if (!current.imuValid || !previous.imuValid)
-    {
-      return "---";
-    }
-
-    const float accelDelta = sqrtf(
-        squared(current.accel.acceleration.x - previous.accel.acceleration.x) +
-        squared(current.accel.acceleration.y - previous.accel.acceleration.y) +
-        squared(current.accel.acceleration.z - previous.accel.acceleration.z));
-
-    const float gyroDelta = sqrtf(
-        squared(current.gyro.gyro.x - previous.gyro.gyro.x) +
-        squared(current.gyro.gyro.y - previous.gyro.gyro.y) +
-        squared(current.gyro.gyro.z - previous.gyro.gyro.z));
-
-    const float motionScore = accelDelta + gyroDelta * 0.35f;
-
-    if (motionScore < 0.12f)
-    {
-      return "STIL";
-    }
-
-    if (motionScore < 0.45f)
-    {
-      return "LOW";
-    }
-
-    if (motionScore < 1.2f)
-    {
-      return "MOVE";
-    }
-
-    return "JOLT";
-  }
 }
 
 void Hardware::beginModeSwitch()
@@ -168,32 +127,36 @@ SensorFrame Hardware::readSensors()
   return frame;
 }
 
-void Hardware::renderDemo(const SensorFrame &current, const SensorFrame &previous)
+void Hardware::renderDemo(const SensorFrame &current, const char *eventLabel)
 {
   if (!displayReady)
   {
     return;
   }
 
+  char topLine[16];
   char line[32];
   const char *systemLabel = systemHealthy ? "[OK]" : "[ERR]";
-  const char *motionLabel = getImuMotionLabel(current, previous);
+
+  if (current.tofValid && current.tofMm < kTofOutOfRangeMm)
+  {
+    snprintf(topLine, sizeof(topLine), "%u mm", current.tofMm);
+  }
+  else
+  {
+    snprintf(topLine, sizeof(topLine), "-");
+  }
 
   display.clearBuffer();
   display.setFont(u8g2_font_6x10_tr);
   display.drawStr(0, 10, "SenseNode");
-  display.drawStr(68, 10, systemLabel);
-  display.drawStr(98, 10, motionLabel);
-
-  if (current.tofValid)
-  {
-    snprintf(line, sizeof(line), "TOF: %u mm", current.tofMm);
-  }
-  else
-  {
-    snprintf(line, sizeof(line), "TOF: --");
-  }
-  display.drawStr(0, 24, line);
+  const uint8_t statusWidth = display.getStrWidth(systemLabel);
+  const uint8_t tofWidth = display.getStrWidth(topLine);
+  const uint8_t statusX = 128 - statusWidth;
+  const uint8_t tofX = statusX > (tofWidth + 3) ? statusX - tofWidth - 3 : 0;
+  display.drawStr(tofX, 10, topLine);
+  display.drawStr(statusX, 10, systemLabel);
+  display.drawStr(0, 24, eventLabel);
 
   if (current.imuValid)
   {
@@ -312,7 +275,8 @@ bool Hardware::readTof(uint16_t &distanceMm)
 
   if (measure.RangeStatus == 4)
   {
-    return false;
+    distanceMm = kTofOutOfRangeMm;
+    return true;
   }
 
   distanceMm = measure.RangeMilliMeter;

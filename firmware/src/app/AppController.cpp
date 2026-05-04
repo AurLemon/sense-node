@@ -4,7 +4,6 @@ namespace
 {
   constexpr uint32_t kSerialBaudRate = 115200;
   constexpr unsigned long kSampleIntervalMs = 50;
-  constexpr unsigned long kDemoSerialIntervalMs = 1000;
 }
 
 void AppController::setup()
@@ -19,6 +18,7 @@ void AppController::setup()
   hardware.beginBase();
   hardware.beginSensors(verboseBoot);
 
+  inferenceService.begin(eventBus);
   demoMode.begin(eventBus, hardware);
   captureMode.begin(eventBus, hardware);
   eventBus.emitModeChanged({currentMode, currentMode});
@@ -26,6 +26,7 @@ void AppController::setup()
   previousFrame = latestFrame;
   latestFrame = hardware.readSensors();
   eventBus.emitSensorFrameSampled({latestFrame, previousFrame, currentMode});
+  eventBus.emitDemoSerialTick({latestFrame, InferenceCompletedEvent{}});
 
   lastSampleMs = millis();
   lastDemoSerialMs = millis();
@@ -46,12 +47,11 @@ void AppController::loop()
     previousFrame = latestFrame;
     latestFrame = hardware.readSensors();
     eventBus.emitSensorFrameSampled({latestFrame, previousFrame, currentMode});
-  }
-
-  if (currentMode == AppMode::Demo && now - lastDemoSerialMs >= kDemoSerialIntervalMs)
-  {
-    lastDemoSerialMs = now;
-    eventBus.emitDemoSerialTick({latestFrame});
+    if (currentMode == AppMode::Demo)
+    {
+      lastDemoSerialMs = now;
+      eventBus.emitDemoSerialTick({latestFrame, inferenceService.getLatestEvent()});
+    }
   }
 
   hardware.updateUserLed(currentMode);

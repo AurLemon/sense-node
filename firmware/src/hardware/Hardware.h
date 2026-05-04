@@ -28,7 +28,7 @@ public:
   void beginBase();
   void beginSensors(bool verbose);
   SensorFrame readSensors();
-  void renderDemo(const SensorFrame &current, const SensorFrame &previous);
+  void renderDemo(const SensorFrame &current, const char *eventLabel);
   void renderCaptureMode();
   void updateUserLed(AppMode mode);
 

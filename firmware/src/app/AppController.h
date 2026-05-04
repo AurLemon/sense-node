@@ -4,6 +4,7 @@
 
 #include "events/EventBus.h"
 #include "hardware/Hardware.h"
+#include "inference/InferenceService.h"
 #include "modes/Modes.h"
 
 class AppController
@@ -17,6 +18,7 @@ private:
 
   EventBus eventBus;
   Hardware hardware;
+  InferenceService inferenceService;
   DemoMode demoMode;
   CaptureMode captureMode;
   AppMode currentMode = AppMode::Demo;
