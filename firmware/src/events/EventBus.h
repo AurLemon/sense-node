@@ -28,7 +28,8 @@ struct ImuInferenceCompletedEvent
 {
   bool ready = false;
   bool windowReady = false;
-  MotionEvent motionEvent = MotionEvent::Reject;
+  MotionEvent motionEvent = MotionEvent::Unknown;
+  MotionEvent rawMlEvent = MotionEvent::Unknown;
   uint16_t collectedFrames = 0;
   uint16_t requiredFrames = 0;
   uint16_t sampleIntervalMs = 0;
@@ -36,20 +37,31 @@ struct ImuInferenceCompletedEvent
   uint16_t nnInputFrameSize = 0;
   float classifierThreshold = 0.0f;
   float confidence = 0.0f;
-  char rawLabel[24]{};
+  char rawMlLabel[24]{};
   float accMag = 0.0f;
   float accDelta = 0.0f;
+  float accJerk = 0.0f;
   float gyroMag = 0.0f;
   float motionEnergy = 0.0f;
   float peakAccDelta = 0.0f;
+  float peakAccJerk = 0.0f;
+  float peakGyroMag = 0.0f;
+  float gravityBaseline = 0.0f;
   unsigned long eventDurationMs = 0;
+  unsigned long motionAgeMs = 0;
+  unsigned long stableDurationMs = 0;
+  unsigned long lastRawMotionMs = 0;
+  unsigned long lastRawStableMs = 0;
   int dspMs = 0;
   int classificationMs = 0;
   int anomalyMs = 0;
   int postprocessingMs = 0;
   bool quietDetected = false;
   bool activeDetected = false;
+  bool rawMotionActive = false;
+  bool rawStable = false;
   bool impactDetected = false;
+  bool tapCandidate = false;
 };
 
 struct HandStateUpdatedEvent
@@ -69,12 +81,19 @@ struct HandLeaveDetectedEvent
 struct FusionDecisionEvent
 {
   bool ready = false;
+  FusionState fusionState = FusionState::Idle;
   FinalEvent finalEvent = FinalEvent::Unknown;
   HandState handState = HandState::NoHand;
-  MotionEvent motionEvent = MotionEvent::Reject;
+  MotionEvent motionEvent = MotionEvent::Unknown;
   float confidence = 0.0f;
   bool rejected = false;
   bool cooldownActive = false;
+  bool tapCandidate = false;
+  bool rawMotionActive = false;
+  bool rawStable = false;
+  unsigned long stableDurationMs = 0;
+  unsigned long motionAgeMs = 0;
+  unsigned long tapCooldownRemainingMs = 0;
 };
 
 struct DemoSerialTickEvent

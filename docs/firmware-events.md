@@ -4,11 +4,11 @@
 
 | 层级             | 输入                             | 输出                                       |
 | ---------------- | -------------------------------- | ------------------------------------------ |
-| IMU 模型原始输出 | IMU 六轴窗口数据                 | `idle` / `tap` / `board_motion`            |
+| IMU 模型原始输出 | IMU 六轴窗口数据                 | `idle` / `tap` / `board_motion` / `unknown` |
 | IMU 后处理事件   | 模型原始输出 + 运行时特征        | `idle` / `tap` / `board_motion` / `reject` |
 | ToF 手部状态     | ToF 距离                         | `no_hand` / `hand_hover` / `hand_near`     |
 | ToF 一次性事件   | ToF 状态转移                     | `hand_leave`                               |
-| 融合状态机       | IMU 后处理事件 + ToF 状态 / 事件 | `final_event`                              |
+| 融合状态机       | IMU 后处理事件 + ToF 状态 / 事件 | `final_event` + `fusion_state`            |
 
 ## 1. IMU 模型原始输出
 
@@ -85,7 +85,9 @@
 | `peak_acc_delta` 门限 | 已实现 |
 | `cooldown`            | 已实现 |
 | `event_duration_ms`   | 已实现 |
-| `jerk` 判定           | 未实现 |
+| `jerk` 判定           | 已实现 |
+| `tap pulse`           | 已实现 |
+| `board_motion settle` | 已实现 |
 
 ## 3. ToF 手部状态
 
@@ -153,17 +155,16 @@
 | 事件名         | 含义         | 输出方式                   |
 | -------------- | ------------ | -------------------------- |
 | `idle`         | 默认静止事件 | 持续输出                   |
-| `hand_hover`   | 手悬停事件   | 持续输出                   |
-| `hand_near`    | 手靠近事件   | 持续输出                   |
-| `hand_leave`   | 手离开事件   | 触发一次                   |
-| `tap`          | 敲击事件     | 触发一次，随后进入冷却期   |
-| `board_motion` | 板体移动事件 | 短时间保持输出             |
-| `unknown`      | 兜底事件     | 无可靠层给出稳定判断时输出 |
+| `tap`          | 敲击脉冲事件 | 触发一次，随后进入冷却期   |
+| `board_motion` | 板体移动事件 | 持续输出，但可快速退出     |
+| `reject`       | 不确定事件   | 置信度不足或状态冲突时输出 |
+| `unknown`      | 初始化兜底   | 仍在 warmup 时输出         |
 
 说明：
 
-- IMU 输出 `reject` 时，最终事件不必然为 `unknown`
-- ToF 状态稳定时，可继续输出对应手部事件
+- `final_event` 现在只承载 IMU / 融合后的主事件语义
+- `hand_state` 作为独立字段保留，不再直接覆盖 `final_event`
+- ToF 仍然参与融合判断，但不会直接否定 `tap`
 
 融合输入：
 
@@ -176,14 +177,13 @@
 
 融合规则：
 
-| 情况                                 | 最终输出            |
-| ------------------------------------ | ------------------- |
-| `motion_event == tap` 且通过冷却检查 | `tap`               |
-| `motion_event == board_motion`       | `board_motion`      |
-| 存在 `hand_leave` 事件               | `hand_leave`        |
-| `hand_state == hand_near`            | `hand_near`         |
-| `hand_state == hand_hover`           | `hand_hover`        |
-| IMU 可用且未触发其他高优先级事件     | `idle` 或 `unknown` |
+| 情况                                     | 最终输出       |
+| ---------------------------------------- | -------------- |
+| `tap` 候选且未处于冷却期                 | `tap`          |
+| `board_motion` 候选且满足持续性条件      | `board_motion` |
+| 原始 IMU 稳定且无其他事件                | `idle`         |
+| 置信度不足、冲突、或无法稳定判断         | `reject`       |
+| 仍处于 warmup                           | `unknown`      |
 
 补充规则：
 
@@ -191,23 +191,23 @@
 | ------------------- | -------------------------------------------- |
 | `tap` 冷却          | 冷却期内不重复触发 `tap`                     |
 | `board_motion` 保持 | 触发后维持短时间输出                         |
-| ToF 兜底            | IMU 为 `reject` 时，ToF 稳定状态仍可继续输出 |
+| ToF 参与            | ToF 只参与辅助判断，不直接覆盖 IMU 主事件    |
 
 ## 6. 事件优先级
 
 ```txt
-tap > board_motion > hand_leave > hand_near > hand_hover > idle > unknown
+```txt
+tap > board_motion > idle > reject > unknown
+```
 ```
 
 | 优先级 | 事件名         |
 | ------ | -------------- |
 | 1      | `tap`          |
 | 2      | `board_motion` |
-| 3      | `hand_leave`   |
-| 4      | `hand_near`    |
-| 5      | `hand_hover`   |
-| 6      | `idle`         |
-| 7      | `unknown`      |
+| 3      | `idle`         |
+| 4      | `reject`       |
+| 5      | `unknown`      |
 
 ## 7. 串口返回值
 

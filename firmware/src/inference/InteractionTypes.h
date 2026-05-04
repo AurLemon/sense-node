@@ -12,21 +12,30 @@ enum class MotionEvent
   Idle,
   Tap,
   BoardMotion,
+  Unknown,
   Reject
 };
 
 enum class FinalEvent
 {
   Idle,
-  HandHover,
-  HandNear,
-  HandLeave,
   Tap,
   BoardMotion,
+  Reject,
   Unknown
+};
+
+enum class FusionState
+{
+  Idle,
+  TapPulse,
+  TapCooldown,
+  BoardMotion,
+  Reject
 };
 
 const char *toString(HandState state);
 const char *toString(MotionEvent event);
 const char *toString(FinalEvent event);
+const char *toString(FusionState state);
 MotionEvent motionEventFromLabel(const char *rawLabel);

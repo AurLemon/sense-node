@@ -27,6 +27,8 @@ const char *toString(MotionEvent event)
     return "tap";
   case MotionEvent::BoardMotion:
     return "board_motion";
+  case MotionEvent::Unknown:
+    return "unknown";
   case MotionEvent::Reject:
     return "reject";
   }
@@ -40,16 +42,12 @@ const char *toString(FinalEvent event)
   {
   case FinalEvent::Idle:
     return "idle";
-  case FinalEvent::HandHover:
-    return "hand_hover";
-  case FinalEvent::HandNear:
-    return "hand_near";
-  case FinalEvent::HandLeave:
-    return "hand_leave";
   case FinalEvent::Tap:
     return "tap";
   case FinalEvent::BoardMotion:
     return "board_motion";
+  case FinalEvent::Reject:
+    return "reject";
   case FinalEvent::Unknown:
     return "unknown";
   }
@@ -57,11 +55,30 @@ const char *toString(FinalEvent event)
   return "unknown";
 }
 
+const char *toString(FusionState state)
+{
+  switch (state)
+  {
+  case FusionState::Idle:
+    return "idle";
+  case FusionState::TapPulse:
+    return "tap_pulse";
+  case FusionState::TapCooldown:
+    return "tap_cooldown";
+  case FusionState::BoardMotion:
+    return "board_motion";
+  case FusionState::Reject:
+    return "reject";
+  }
+
+  return "reject";
+}
+
 MotionEvent motionEventFromLabel(const char *rawLabel)
 {
   if (rawLabel == nullptr)
   {
-    return MotionEvent::Reject;
+    return MotionEvent::Unknown;
   }
 
   if (std::strcmp(rawLabel, "idle") == 0)
@@ -79,5 +96,5 @@ MotionEvent motionEventFromLabel(const char *rawLabel)
     return MotionEvent::BoardMotion;
   }
 
-  return MotionEvent::Reject;
+  return MotionEvent::Unknown;
 }

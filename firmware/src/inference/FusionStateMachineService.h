@@ -19,12 +19,17 @@ private:
   void reset();
   void evaluate();
   void emitCurrentState();
+  void enterTapPulse(unsigned long now);
+  void enterBoardMotion(unsigned long now);
+  bool rawStableFor(unsigned long now, unsigned long durationMs) const;
 
   EventBus *eventBus = nullptr;
   ImuInferenceCompletedEvent latestImu{};
   HandStateUpdatedEvent latestHand{};
   FusionDecisionEvent latestFusion{};
+  FusionState fusionState = FusionState::Idle;
   bool handLeavePending = false;
-  unsigned long lastTapMs = 0;
-  unsigned long lastBoardMotionMs = 0;
+  unsigned long tapPulseUntilMs = 0;
+  unsigned long tapCooldownUntilMs = 0;
+  unsigned long motionStartMs = 0;
 };
