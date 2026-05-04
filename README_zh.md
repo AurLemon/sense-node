@@ -17,22 +17,12 @@ Sense Node 关注的是如何把桌面上的物理交互，转成软件侧可感
 
 ## 结构
 
-仓库结构保持得比较直接：
-
-- `app/`
-  桌面端项目
-- `app/src/main.ts`
-  Electron 主进程入口
-- `app/src/preload.ts`
-  Preload 桥接入口
-- `app/src/renderer.ts`
-  Renderer 入口
-- `firmware/`
-  硬件节点对应的嵌入式工程
-- `firmware/src/main.cpp`
-  当前固件入口与传感器轮询逻辑
-- `firmware/platformio.ini`
-  PlatformIO 的板卡、框架和库依赖配置
+```txt
+root
+├── app/       # 桌面端应用
+├── docs/      # 项目文档
+└── firmware/  # ESP32-S3 固件与嵌入式资源
+```
 
 ## 设备
 

@@ -15,24 +15,14 @@ The current prototype is split into two parts:
 - `firmware`: PlatformIO firmware for the ESP32-S3 device
 - `app`: Electron + TypeScript + Vite desktop application
 
-## Layouts
+## Structure
 
-The repository layout is intentionally simple:
-
-- `app/`
-  Electron desktop-side project
-- `app/src/main.ts`
-  Electron main process entry
-- `app/src/preload.ts`
-  Preload bridge entry
-- `app/src/renderer.ts`
-  Renderer entry
-- `firmware/`
-  Embedded project for the hardware node
-- `firmware/src/main.cpp`
-  Current firmware entry and sensor polling logic
-- `firmware/platformio.ini`
-  PlatformIO board, framework, and library configuration
+```txt
+root
+├── app/       # Desktop application
+├── docs/      # Project documentation
+└── firmware/  # ESP32-S3 firmware and embedded resources
+```
 
 ## Devices
 
