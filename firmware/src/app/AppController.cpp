@@ -4,6 +4,7 @@ namespace
 {
   constexpr uint32_t kSerialBaudRate = 115200;
   constexpr unsigned long kSampleIntervalMs = 50;
+  constexpr unsigned long kCaptureRenderIntervalMs = 250;
 }
 
 void AppController::setup()
@@ -34,6 +35,7 @@ void AppController::setup()
 
   lastSampleMs = millis();
   lastDemoSerialMs = millis();
+  lastCaptureRenderMs = millis();
 }
 
 void AppController::loop()
@@ -60,6 +62,12 @@ void AppController::loop()
     }
   }
 
+  if (currentMode == AppMode::Capture && now - lastCaptureRenderMs >= kCaptureRenderIntervalMs)
+  {
+    lastCaptureRenderMs = now;
+    hardware.renderCaptureMode();
+  }
+
   hardware.updateUserLed(currentMode);
   delay(1);
 }
@@ -68,5 +76,9 @@ void AppController::changeMode(AppMode nextMode)
 {
   const AppMode previousMode = currentMode;
   currentMode = nextMode;
+  if (currentMode == AppMode::Capture)
+  {
+    lastCaptureRenderMs = millis();
+  }
   eventBus.emitModeChanged({previousMode, currentMode});
 }
