@@ -46,14 +46,14 @@
 #include "edge-impulse-sdk/classifier/inferencing_engines/engines.h"
 #include "edge-impulse-sdk/classifier/postprocessing/ei_postprocessing_common.h"
 
-const char* ei_classifier_inferencing_categories_982154_1[] = { "board_flick", "board_pickup", "board_putdown", "hand_hover", "hand_leave", "hand_near", "hard_tap", "idle", "light_tap", "unknown_noise" };
+const char* ei_classifier_inferencing_categories_982154_1[] = { "board_motion", "idle", "tap" };
 
-EI_CLASSIFIER_DSP_AXES_INDEX_TYPE ei_dsp_config_982154_2_axes[] = { 0, 1, 2, 3, 4, 5, 6 };
-const uint32_t ei_dsp_config_982154_2_axes_size = 7;
+EI_CLASSIFIER_DSP_AXES_INDEX_TYPE ei_dsp_config_982154_2_axes[] = { 0, 1, 2, 3, 4, 5 };
+const uint32_t ei_dsp_config_982154_2_axes_size = 6;
 ei_dsp_config_spectral_analysis_t ei_dsp_config_982154_2 = {
     2, // uint32_t blockId
     4, // int implementationVersion
-    7, // int length of axes
+    6, // int length of axes
     1.0f, // float scale-axes
     1, // int input-decimation-ratio
     "none", // select filter-type
@@ -75,7 +75,7 @@ const uint8_t ei_dsp_blocks_982154_1_size = 1;
 ei_model_dsp_t ei_dsp_blocks_982154_1[ei_dsp_blocks_982154_1_size] = {
     { // DSP block 2
         2,
-        91, // output size
+        78, // output size
         &extract_spectral_analysis_features, // DSP function pointer
         (void*)&ei_dsp_config_982154_2, // pointer to config struct
         ei_dsp_config_982154_2_axes, // array of offsets into the input stream, one for each axis
@@ -150,12 +150,12 @@ const ei_impulse_t impulse_982154_1 = {
     .project_name = "sense_node_esp32s3",
     .impulse_id = 1,
     .impulse_name = "Impulse #1",
-    .deploy_version = 1,
+    .deploy_version = 3,
 
-    .nn_input_frame_size = 91,
+    .nn_input_frame_size = 78,
     .raw_sample_count = 60,
-    .raw_samples_per_frame = 7,
-    .dsp_input_frame_size = 60 * 7,
+    .raw_samples_per_frame = 6,
+    .dsp_input_frame_size = 60 * 6,
     .input_width = 0,
     .input_height = 0,
     .input_frames = 0,
@@ -176,12 +176,12 @@ const ei_impulse_t impulse_982154_1 = {
     .inferencing_engine = EI_CLASSIFIER_TFLITE,
 
     .sensor = EI_CLASSIFIER_SENSOR_FUSION,
-    .fusion_string = "tof + accX + accY + accZ + gyrX + gyrY + gyrZ",
+    .fusion_string = "accX + accY + accZ + gyrX + gyrY + gyrZ",
     .slice_size = (60/4),
     .slices_per_model_window = 4,
 
     .has_anomaly = EI_ANOMALY_TYPE_UNKNOWN,
-    .label_count = 10,
+    .label_count = 3,
     .categories = ei_classifier_inferencing_categories_982154_1,
     .results_type = EI_CLASSIFIER_TYPE_CLASSIFICATION,
     .freeform_outputs_size = freeform_outputs_982154_1_size,
