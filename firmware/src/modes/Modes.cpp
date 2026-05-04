@@ -1,6 +1,7 @@
 #include "modes/Modes.h"
 
-#include <ESP.h>
+#include <esp_heap_caps.h>
+#include <esp_system.h>
 
 void DemoMode::begin(EventBus &eventBus, Hardware &targetHardware)
 {
@@ -102,6 +103,10 @@ void DemoMode::printFrameToSerial(const SensorFrame &frame)
 
 void DemoMode::printWarmupInfo(const DemoSerialTickEvent &event)
 {
+  const uint32_t cpuMhz = getCpuFrequencyMhz();
+  const uint32_t freeHeap = esp_get_free_heap_size();
+  const uint32_t minFreeHeap = esp_get_minimum_free_heap_size();
+  const uint32_t maxAllocHeap = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
   const uint16_t requiredFrames = event.imu.requiredFrames;
   const uint16_t collectedFrames = event.imu.collectedFrames;
   const uint16_t remainingFrames =
@@ -133,13 +138,13 @@ void DemoMode::printWarmupInfo(const DemoSerialTickEvent &event)
   Serial.print("classifier_threshold=");
   Serial.println(event.imu.classifierThreshold, 4);
   Serial.print("cpu_mhz=");
-  Serial.println(ESP.getCpuFreqMHz());
+  Serial.println(cpuMhz);
   Serial.print("free_heap=");
-  Serial.println(ESP.getFreeHeap());
+  Serial.println(freeHeap);
   Serial.print("min_free_heap=");
-  Serial.println(ESP.getMinFreeHeap());
+  Serial.println(minFreeHeap);
   Serial.print("max_alloc_heap=");
-  Serial.println(ESP.getMaxAllocHeap());
+  Serial.println(maxAllocHeap);
 }
 
 void DemoMode::printDemoCsvLine(const DemoSerialTickEvent &event)
@@ -148,10 +153,10 @@ void DemoMode::printDemoCsvLine(const DemoSerialTickEvent &event)
   const unsigned long uptimeMs = millis();
   const unsigned long uptimeWholeSeconds = uptimeMs / 1000;
   const unsigned long uptimeTenths = (uptimeMs % 1000) / 100;
-  const uint32_t cpuMhz = ESP.getCpuFreqMHz();
-  const uint32_t freeHeap = ESP.getFreeHeap();
-  const uint32_t minFreeHeap = ESP.getMinFreeHeap();
-  const uint32_t maxAllocHeap = ESP.getMaxAllocHeap();
+  const uint32_t cpuMhz = getCpuFrequencyMhz();
+  const uint32_t freeHeap = esp_get_free_heap_size();
+  const uint32_t minFreeHeap = esp_get_minimum_free_heap_size();
+  const uint32_t maxAllocHeap = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
 
   if (frame.tofValid)
   {
