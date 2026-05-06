@@ -6,18 +6,37 @@ import { MakerRpm } from '@electron-forge/maker-rpm'
 import { VitePlugin } from '@electron-forge/plugin-vite'
 import { FusesPlugin } from '@electron-forge/plugin-fuses'
 import { FuseV1Options, FuseVersion } from '@electron/fuses'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+import path from 'node:path'
+
+const execFileAsync = promisify(execFile)
+
+async function generateAppAssets(): Promise<void> {
+	const scriptPath = path.join(__dirname, 'scripts', 'generate-icons.cjs')
+	await execFileAsync(process.execPath, [scriptPath], {
+		cwd: __dirname,
+		env: process.env,
+	})
+}
 
 const config: ForgeConfig = {
 	packagerConfig: {
 		asar: true,
+		icon: 'src/main/assets/app-icon',
 	},
 	rebuildConfig: {},
 	makers: [
-		new MakerSquirrel({}),
+		new MakerSquirrel({
+			setupIcon: 'src/main/assets/app-icon.ico',
+		}),
 		new MakerZIP({}, ['darwin']),
 		new MakerRpm({}),
 		new MakerDeb({}),
 	],
+	hooks: {
+		generateAssets: generateAppAssets,
+	},
 	plugins: [
 		new VitePlugin({
 			// `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.

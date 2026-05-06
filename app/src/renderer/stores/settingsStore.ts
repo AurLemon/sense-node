@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { watch, ref } from 'vue'
 import type { LlmConfig } from '../../shared/types/sensenode'
+import type { Locale } from '../../shared/i18n'
 
-export type Locale = 'zh-CN' | 'en-US'
 export type ThemeMode = 'dark' | 'light'
 
 const storageKeys = {
@@ -34,11 +34,16 @@ export const useSettingsStore = defineStore('settings', () => {
 		model: '',
 	})
 
-	watch(locale, (value) => {
-		if (typeof window !== 'undefined') {
-			window.localStorage.setItem(storageKeys.locale, value)
-		}
-	})
+	watch(
+		locale,
+		(value) => {
+			if (typeof window !== 'undefined') {
+				window.localStorage.setItem(storageKeys.locale, value)
+				window.sensenode?.app?.setLocale?.(value)
+			}
+		},
+		{ immediate: true },
+	)
 
 	watch(themeMode, (value) => {
 		if (typeof window !== 'undefined') {

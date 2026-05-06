@@ -1,10 +1,11 @@
 import { BrowserWindow, screen } from 'electron'
 import path from 'node:path'
+import { getAppIcon } from './appIcon'
 
 export function createHudWindow(): BrowserWindow {
 	const display = screen.getPrimaryDisplay()
-	const width = 280
-	const height = 96
+	const width = 360
+	const height = 122
 	const margin = 18
 	const window = new BrowserWindow({
 		width,
@@ -12,12 +13,14 @@ export function createHudWindow(): BrowserWindow {
 		x: display.workArea.x + display.workArea.width - width - margin,
 		y: display.workArea.y + display.workArea.height - height - margin,
 		frame: false,
+		hasShadow: true,
 		resizable: false,
 		alwaysOnTop: true,
 		skipTaskbar: true,
-		transparent: true,
+		transparent: false,
 		show: false,
-		backgroundColor: '#00000000',
+		backgroundColor: '#eef2f7',
+		icon: getAppIcon(),
 		webPreferences: {
 			preload: path.join(__dirname, 'preload.js'),
 			contextIsolation: true,

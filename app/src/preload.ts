@@ -43,5 +43,7 @@ contextBridge.exposeInMainWorld('sensenode', {
 			ipcRenderer.invoke(ipcChannels.appShowMainWindow),
 		showHud: (): Promise<void> => ipcRenderer.invoke(ipcChannels.appShowHud),
 		hideHud: (): Promise<void> => ipcRenderer.invoke(ipcChannels.appHideHud),
+		setLocale: (locale: string): Promise<void> =>
+			ipcRenderer.invoke(ipcChannels.appSetLocale, locale),
 	},
 })

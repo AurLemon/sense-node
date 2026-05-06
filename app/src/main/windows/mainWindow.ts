@@ -1,5 +1,6 @@
 import { BrowserWindow } from 'electron'
 import path from 'node:path'
+import { getAppIcon } from './appIcon'
 
 export function createMainWindow(): BrowserWindow {
 	const window = new BrowserWindow({
@@ -8,6 +9,7 @@ export function createMainWindow(): BrowserWindow {
 		minWidth: 960,
 		minHeight: 640,
 		backgroundColor: '#080A0F',
+		icon: getAppIcon(),
 		title: 'SenseNode',
 		webPreferences: {
 			preload: path.join(__dirname, 'preload.js'),

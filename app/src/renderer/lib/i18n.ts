@@ -1,5 +1,6 @@
 import { computed } from 'vue'
-import { useSettingsStore, type Locale } from '../stores/settingsStore'
+import { useSettingsStore } from '../stores/settingsStore'
+import type { Locale } from '../../shared/i18n'
 
 const messages = {
 	'zh-CN': {

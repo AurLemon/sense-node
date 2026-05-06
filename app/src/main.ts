@@ -5,11 +5,18 @@ import { listSerialPorts } from './main/serial/serialScanner'
 import { SerialService } from './main/serial/serialService'
 import { createHudWindow } from './main/windows/hudWindow'
 import { createMainWindow } from './main/windows/mainWindow'
-import { createAppTray } from './main/windows/tray'
+import {
+	createAppTray,
+	setTrayLocale,
+	refreshAppTray,
+} from './main/windows/tray'
+import { normalizeLocale } from './shared/i18n'
 
 if (started) {
 	app.quit()
 }
+
+app.setAppUserModelId('SenseNode')
 
 let mainWindow: BrowserWindow | null = null
 let hudWindow: BrowserWindow | null = null
@@ -44,12 +51,52 @@ function registerIpc(): void {
 		return serialService.getStatus('connected')
 	})
 	ipcMain.handle(ipcChannels.appShowMainWindow, () => {
-		mainWindow?.show()
-		mainWindow?.focus()
-		hudWindow?.hide()
+		showMainWindow()
 	})
-	ipcMain.handle(ipcChannels.appShowHud, () => hudWindow?.showInactive())
-	ipcMain.handle(ipcChannels.appHideHud, () => hudWindow?.hide())
+	ipcMain.handle(ipcChannels.appShowHud, () => showHudWindow())
+	ipcMain.handle(ipcChannels.appHideHud, () => hideHudWindow())
+	ipcMain.handle(ipcChannels.appSetLocale, (_event, locale: string) => {
+		setTrayLocale(normalizeLocale(locale))
+		refreshAppTray({
+			showMainWindow,
+			showHudWindow,
+			hideHudWindow,
+			serialService,
+			onQuit: () => {
+				isQuitting = true
+			},
+		})
+	})
+}
+
+function hideHudWindow(): void {
+	if (hudWindow && !hudWindow.isDestroyed()) {
+		hudWindow.hide()
+	}
+}
+
+function showHudWindow(): void {
+	if (!hudWindow || hudWindow.isDestroyed()) {
+		hudWindow = createHudWindow()
+		hudWindow.on('close', (event) => {
+			if (isQuitting) {
+				return
+			}
+			event.preventDefault()
+			hideHudWindow()
+		})
+		hudWindow.on('closed', () => {
+			hudWindow = null
+		})
+	}
+
+	hudWindow.showInactive()
+}
+
+function showMainWindow(): void {
+	mainWindow?.show()
+	mainWindow?.focus()
+	hideHudWindow()
 }
 
 function createWindows(): void {
@@ -62,20 +109,25 @@ function createWindows(): void {
 		}
 		event.preventDefault()
 		mainWindow?.hide()
-		hudWindow?.showInactive()
+		showHudWindow()
 	})
 
 	mainWindow.on('minimize', () => {
-		hudWindow?.showInactive()
+		showHudWindow()
 	})
 
-	hudWindow.on('closed', () => {
-		hudWindow = null
+	hudWindow.on('close', (event) => {
+		if (isQuitting) {
+			return
+		}
+		event.preventDefault()
+		hideHudWindow()
 	})
 
 	createAppTray({
-		mainWindow,
-		hudWindow,
+		showMainWindow,
+		showHudWindow,
+		hideHudWindow,
 		serialService,
 		onQuit: () => {
 			isQuitting = true
@@ -109,5 +161,5 @@ app.on('activate', () => {
 		createWindows()
 		return
 	}
-	mainWindow.show()
+	showMainWindow()
 })

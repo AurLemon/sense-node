@@ -36,6 +36,7 @@ declare global {
 				showMainWindow(): Promise<void>
 				showHud(): Promise<void>
 				hideHud(): Promise<void>
+				setLocale(locale: string): Promise<void>
 			}
 		}
 	}

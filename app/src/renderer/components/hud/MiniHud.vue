@@ -49,15 +49,19 @@ const hint = computed(() => {
 
 <style scoped>
 .hud {
-	width: 100vw;
-	height: 100vh;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	width: 100%;
+	height: 100%;
 	border: 1px solid var(--color-border);
 	border-radius: 8px;
 	padding: 13px 14px;
-	background: rgb(8 10 15 / 78%);
+	background: var(--hud-bg);
 	color: var(--color-text);
 	backdrop-filter: blur(20px);
 	text-align: left;
+	overflow: hidden;
 	-webkit-app-region: drag;
 }
 
@@ -67,11 +71,20 @@ const hint = computed(() => {
 	justify-content: space-between;
 	margin-bottom: 8px;
 	font-size: 13px;
+	line-height: 1.2;
 }
 
 .hint {
-	margin-top: 7px;
 	color: var(--color-text-strong);
 	font-size: 12px;
+	line-height: 1.2;
+}
+
+:global(:root) {
+	--hud-bg: rgb(255 255 255 / 84%);
+}
+
+:global(:root[data-theme='dark']) {
+	--hud-bg: rgb(8 10 15 / 78%);
 }
 </style>
