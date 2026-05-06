@@ -18,7 +18,7 @@ private:
   static void handleFusionDecision(const FusionDecisionEvent &event, void *context);
   void printWarmupInfo(const DemoSerialTickEvent &event);
   void printFrameToSerial(const SensorFrame &frame);
-  void printDemoCsvLine(const DemoSerialTickEvent &event);
+  void printDemoJsonLine(const DemoSerialTickEvent &event);
   void renderCurrentFrame();
 
   Hardware *hardware = nullptr;

@@ -52,7 +52,7 @@ void DemoMode::handleDemoSerialTick(const DemoSerialTickEvent &event, void *cont
     self->printWarmupInfo(event);
     self->warmupInfoPrinted = true;
   }
-  self->printDemoCsvLine(event);
+  self->printDemoJsonLine(event);
 }
 
 void DemoMode::handleFusionDecision(const FusionDecisionEvent &event, void *context)
@@ -116,48 +116,47 @@ void DemoMode::printWarmupInfo(const DemoSerialTickEvent &event)
   const unsigned long remainingMs =
       static_cast<unsigned long>(remainingFrames) * event.imu.sampleIntervalMs;
 
-  Serial.println("warmup_info");
-  Serial.print("model_labels=");
-  Serial.println(3);
-  Serial.print("sample_interval_ms=");
-  Serial.println(event.imu.sampleIntervalMs);
-  Serial.print("window_frames=");
-  Serial.println(requiredFrames);
-  Serial.print("window_fill=");
+  Serial.print("{\"type\":\"warmup_info\",\"sample_rate_hz\":");
+  Serial.print(event.imu.sampleIntervalMs > 0 ? 1000 / event.imu.sampleIntervalMs : 0);
+  Serial.print(",\"window_frames\":");
+  Serial.print(requiredFrames);
+  Serial.print(",\"window_fill\":\"");
   Serial.print(collectedFrames);
   Serial.print('/');
-  Serial.println(requiredFrames);
-  Serial.print("warmup_target_ms=");
-  Serial.println(warmupTargetMs);
-  Serial.print("warmup_remaining_ms=");
-  Serial.println(remainingMs);
-  Serial.print("dsp_input_frame_size=");
-  Serial.println(event.imu.dspInputFrameSize);
-  Serial.print("nn_input_frame_size=");
-  Serial.println(event.imu.nnInputFrameSize);
-  Serial.print("classifier_threshold=");
-  Serial.println(event.imu.classifierThreshold, 4);
-  Serial.print("cpu_mhz=");
-  Serial.println(cpuMhz);
-  Serial.print("free_heap=");
-  Serial.println(freeHeap);
-  Serial.print("min_free_heap=");
-  Serial.println(minFreeHeap);
-  Serial.print("max_alloc_heap=");
-  Serial.println(maxAllocHeap);
+  Serial.print(requiredFrames);
+  Serial.print("\",\"warmup_target_ms\":");
+  Serial.print(warmupTargetMs);
+  Serial.print(",\"warmup_remaining_ms\":");
+  Serial.print(remainingMs);
+  Serial.print(",\"model_labels\":[\"idle\",\"tap\",\"board_motion\"],\"dsp_input_frame_size\":");
+  Serial.print(event.imu.dspInputFrameSize);
+  Serial.print(",\"nn_input_frame_size\":");
+  Serial.print(event.imu.nnInputFrameSize);
+  Serial.print(",\"classifier_threshold\":");
+  Serial.print(event.imu.classifierThreshold, 4);
+  Serial.print(",\"cpu_mhz\":");
+  Serial.print(cpuMhz);
+  Serial.print(",\"free_heap\":");
+  Serial.print(freeHeap);
+  Serial.print(",\"min_free_heap\":");
+  Serial.print(minFreeHeap);
+  Serial.print(",\"max_alloc_heap\":");
+  Serial.print(maxAllocHeap);
+  Serial.println('}');
 }
 
-void DemoMode::printDemoCsvLine(const DemoSerialTickEvent &event)
+void DemoMode::printDemoJsonLine(const DemoSerialTickEvent &event)
 {
   const SensorFrame &frame = event.current;
   const unsigned long uptimeMs = millis();
-  const unsigned long uptimeWholeSeconds = uptimeMs / 1000;
-  const unsigned long uptimeTenths = (uptimeMs % 1000) / 100;
   const uint32_t cpuMhz = getCpuFrequencyMhz();
   const uint32_t freeHeap = esp_get_free_heap_size();
   const uint32_t minFreeHeap = esp_get_minimum_free_heap_size();
   const uint32_t maxAllocHeap = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
+  const unsigned long inferenceMs =
+      event.imu.dspMs + event.imu.classificationMs + event.imu.postprocessingMs;
 
+  Serial.print("{\"type\":\"sensor_frame\",\"tof_mm\":");
   if (frame.tofValid)
   {
     Serial.print(frame.tofMm);
@@ -167,82 +166,84 @@ void DemoMode::printDemoCsvLine(const DemoSerialTickEvent &event)
     Serial.print(-1);
   }
 
-  Serial.print(',');
+  Serial.print(",\"accel\":");
 
   if (frame.imuValid)
   {
+    Serial.print("{\"x\":");
     Serial.print(frame.accel.acceleration.x, 4);
-    Serial.print(',');
+    Serial.print(",\"y\":");
     Serial.print(frame.accel.acceleration.y, 4);
-    Serial.print(',');
+    Serial.print(",\"z\":");
     Serial.print(frame.accel.acceleration.z, 4);
-    Serial.print(',');
+    Serial.print("},\"gyro\":{\"x\":");
     Serial.print(frame.gyro.gyro.x, 4);
-    Serial.print(',');
+    Serial.print(",\"y\":");
     Serial.print(frame.gyro.gyro.y, 4);
-    Serial.print(',');
+    Serial.print(",\"z\":");
     Serial.print(frame.gyro.gyro.z, 4);
+    Serial.print('}');
   }
   else
   {
-    Serial.print("-1.0000,-1.0000,-1.0000,-1.0000,-1.0000,-1.0000");
+    Serial.print("{\"x\":0,\"y\":0,\"z\":0},\"gyro\":{\"x\":0,\"y\":0,\"z\":0}");
   }
 
-  Serial.print(',');
-  Serial.print(uptimeWholeSeconds);
-  Serial.print('.');
-  Serial.print(uptimeTenths);
-  Serial.print('s');
-  Serial.print(',');
+  Serial.print(",\"uptime_ms\":");
+  Serial.print(uptimeMs);
+  Serial.print(",\"imu_label\":\"");
   Serial.print(event.imu.ready && event.imu.windowReady ? event.imu.rawMlLabel : "warming_up");
-  Serial.print(',');
+  Serial.print("\",\"confidence\":");
   Serial.print(event.imu.ready ? event.imu.confidence : 0.0f, 4);
-  Serial.print(',');
+  Serial.print(",\"hand_state\":\"");
   Serial.print(toString(event.hand.handState));
-  Serial.print(',');
+  Serial.print("\",\"motion_event\":\"");
   Serial.print(toString(event.imu.motionEvent));
-  Serial.print(',');
+  Serial.print("\",\"fusion_state\":\"");
   Serial.print(toString(event.fusion.fusionState));
-  Serial.print(',');
+  Serial.print("\",\"final_event\":\"");
   Serial.print(event.fusion.ready ? toString(event.fusion.finalEvent) : "warming_up");
-  Serial.print(',');
+  Serial.print("\",\"acc_mag\":");
   Serial.print(event.imu.accMag, 4);
-  Serial.print(',');
+  Serial.print(",\"acc_delta\":");
   Serial.print(event.imu.accDelta, 4);
-  Serial.print(',');
+  Serial.print(",\"acc_jerk\":");
   Serial.print(event.imu.accJerk, 4);
-  Serial.print(',');
+  Serial.print(",\"gyro_mag\":");
   Serial.print(event.imu.gyroMag, 4);
-  Serial.print(',');
+  Serial.print(",\"tap_candidate\":");
   Serial.print(event.fusion.tapCandidate ? "1" : "0");
-  Serial.print(',');
+  Serial.print(",\"raw_motion_active\":");
   Serial.print(event.fusion.rawMotionActive ? "1" : "0");
-  Serial.print(',');
+  Serial.print(",\"raw_stable\":");
   Serial.print(event.fusion.rawStable ? "1" : "0");
-  Serial.print(',');
+  Serial.print(",\"stable_duration_ms\":");
   Serial.print(event.fusion.stableDurationMs);
-  Serial.print(',');
+  Serial.print(",\"motion_age_ms\":");
   Serial.print(event.fusion.motionAgeMs);
-  Serial.print(',');
+  Serial.print(",\"tap_cooldown_remaining_ms\":");
   Serial.print(event.fusion.tapCooldownRemainingMs);
-  Serial.print(',');
+  Serial.print(",\"inference_ms\":");
+  Serial.print(inferenceMs);
+  Serial.print(",\"dsp_ms\":");
   Serial.print(event.imu.dspMs);
-  Serial.print(',');
+  Serial.print(",\"classification_ms\":");
   Serial.print(event.imu.classificationMs);
-  Serial.print(',');
+  Serial.print(",\"postprocessing_ms\":");
   Serial.print(event.imu.postprocessingMs);
-  Serial.print(',');
+  Serial.print(",\"window_fill\":\"");
   Serial.print(event.imu.collectedFrames);
   Serial.print('/');
   Serial.print(event.imu.requiredFrames);
-  Serial.print(',');
+  Serial.print("\",\"cpu_mhz\":");
   Serial.print(cpuMhz);
-  Serial.print(',');
+  Serial.print(",\"free_heap\":");
   Serial.print(freeHeap);
-  Serial.print(',');
+  Serial.print(",\"min_free_heap\":");
   Serial.print(minFreeHeap);
-  Serial.print(',');
-  Serial.println(maxAllocHeap);
+  Serial.print(",\"max_alloc_heap\":");
+  Serial.print(maxAllocHeap);
+  Serial.println('}');
 }
 
 void DemoMode::renderCurrentFrame()
