@@ -1,0 +1,87 @@
+import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
+import type {
+	DataSourceType,
+	SenseNodeEventLog,
+	SenseNodeFrame,
+	StableEvent,
+	StabilizerSnapshot,
+} from '../../shared/types/sensenode'
+import { EventStabilizer } from '../lib/eventStabilizer'
+
+const stabilizer = new EventStabilizer()
+
+export const useDeviceStore = defineStore('device', () => {
+	const currentFrame = ref<SenseNodeFrame | null>(null)
+	const frames = ref<SenseNodeFrame[]>([])
+	const events = ref<SenseNodeEventLog[]>([])
+	const stabilizerSnapshot = ref<StabilizerSnapshot>(stabilizer.getSnapshot())
+	const source = ref<DataSourceType | null>(null)
+	const stabilizerEnabled = ref(true)
+
+	const stableEvent = computed<StableEvent>(
+		() => stabilizerSnapshot.value.stableEvent,
+	)
+	const rawEvent = computed(() => stabilizerSnapshot.value.rawEvent)
+
+	function ingestFrame(
+		frame: SenseNodeFrame,
+		nextSource: DataSourceType,
+	): void {
+		source.value = nextSource
+		const normalized = {
+			...frame,
+			timestamp: frame.timestamp ?? Date.now(),
+		}
+		currentFrame.value = normalized
+		frames.value.unshift(normalized)
+		if (frames.value.length > 220) {
+			frames.value.length = 220
+		}
+
+		if (normalized.type !== 'sensor_frame') {
+			return
+		}
+
+		stabilizerSnapshot.value = stabilizerEnabled.value
+			? stabilizer.update(normalized)
+			: {
+					rawEvent: (normalized.final_event as StableEvent) ?? 'unknown',
+					stableEvent: (normalized.final_event as StableEvent) ?? 'unknown',
+					pendingEvent: null,
+					confidence: normalized.confidence ?? 1,
+					state: 'stable',
+					lastTransitionAt: Date.now(),
+					holdUntil: 0,
+					reason: 'stabilizer disabled',
+				}
+
+		const log: SenseNodeEventLog = {
+			id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+			timestamp: normalized.timestamp,
+			source: nextSource,
+			rawEvent: stabilizerSnapshot.value.rawEvent,
+			stableEvent: stabilizerSnapshot.value.stableEvent,
+			confidence: normalized.confidence,
+			tofMm: normalized.tof_mm,
+			inferenceMs: normalized.inference_ms,
+			frame: normalized,
+		}
+		events.value.unshift(log)
+		if (events.value.length > 100) {
+			events.value.length = 100
+		}
+	}
+
+	return {
+		currentFrame,
+		frames,
+		events,
+		stabilizerSnapshot,
+		source,
+		stabilizerEnabled,
+		stableEvent,
+		rawEvent,
+		ingestFrame,
+	}
+})

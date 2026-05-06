@@ -5,11 +5,15 @@
 		"allowJs": true,
 		"skipLibCheck": true,
 		"esModuleInterop": true,
+		"strict": true,
 		"noImplicitAny": true,
 		"sourceMap": true,
 		"baseUrl": ".",
 		"outDir": "dist",
 		"moduleResolution": "node",
-		"resolveJsonModule": true
-	}
+		"resolveJsonModule": true,
+		"types": ["electron"]
+	},
+	"include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "forge.env.d.ts"],
+	"exclude": ["dist", "out", "node_modules", "**/*.timestamp-*.mjs"]
 }

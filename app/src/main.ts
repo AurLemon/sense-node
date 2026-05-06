@@ -1,43 +1,103 @@
-import { app, BrowserWindow } from 'electron'
-import path from 'node:path'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import started from 'electron-squirrel-startup'
+import { ipcChannels } from './main/bridge/ipcChannels'
+import { listSerialPorts } from './main/serial/serialScanner'
+import { SerialService } from './main/serial/serialService'
+import { createHudWindow } from './main/windows/hudWindow'
+import { createMainWindow } from './main/windows/mainWindow'
+import { createAppTray } from './main/windows/tray'
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
 	app.quit()
 }
 
-const createWindow = () => {
-	// Create the browser window.
-	const mainWindow = new BrowserWindow({
-		width: 800,
-		height: 600,
-		webPreferences: {
-			preload: path.join(__dirname, 'preload.js'),
-		},
-	})
+let mainWindow: BrowserWindow | null = null
+let hudWindow: BrowserWindow | null = null
+let isQuitting = false
+const serialService = new SerialService()
 
-	// and load the index.html of the app.
-	if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-		mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
-	} else {
-		mainWindow.loadFile(
-			path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-		)
+function broadcast(channel: string, payload: unknown): void {
+	for (const window of BrowserWindow.getAllWindows()) {
+		window.webContents.send(channel, payload)
 	}
-
-	// Open the DevTools.
-	mainWindow.webContents.openDevTools()
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.on('ready', createWindow)
+function registerIpc(): void {
+	ipcMain.handle(ipcChannels.serialListPorts, () => listSerialPorts())
+	ipcMain.handle(
+		ipcChannels.serialConnect,
+		async (_event, path: string, baudRate?: number) => {
+			await serialService.connect(path, baudRate)
+			return serialService.getStatus('connected')
+		},
+	)
+	ipcMain.handle(ipcChannels.serialDisconnect, async () => {
+		await serialService.disconnect()
+		return serialService.getStatus('disconnected')
+	})
+	ipcMain.handle(ipcChannels.serialPause, () => {
+		serialService.pause()
+		return serialService.getStatus('connected')
+	})
+	ipcMain.handle(ipcChannels.serialResume, () => {
+		serialService.resume()
+		return serialService.getStatus('connected')
+	})
+	ipcMain.handle(ipcChannels.appShowMainWindow, () => {
+		mainWindow?.show()
+		mainWindow?.focus()
+		hudWindow?.hide()
+	})
+	ipcMain.handle(ipcChannels.appShowHud, () => hudWindow?.showInactive())
+	ipcMain.handle(ipcChannels.appHideHud, () => hudWindow?.hide())
+}
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+function createWindows(): void {
+	mainWindow = createMainWindow()
+	hudWindow = createHudWindow()
+
+	mainWindow.on('close', (event) => {
+		if (isQuitting) {
+			return
+		}
+		event.preventDefault()
+		mainWindow?.hide()
+		hudWindow?.showInactive()
+	})
+
+	mainWindow.on('minimize', () => {
+		hudWindow?.showInactive()
+	})
+
+	hudWindow.on('closed', () => {
+		hudWindow = null
+	})
+
+	createAppTray({
+		mainWindow,
+		hudWindow,
+		serialService,
+		onQuit: () => {
+			isQuitting = true
+		},
+	})
+}
+
+serialService.on('frame', (frame) => broadcast(ipcChannels.deviceFrame, frame))
+serialService.on('line', (line) => broadcast(ipcChannels.serialLine, line))
+serialService.on('status', (status) =>
+	broadcast(ipcChannels.dataSourceStatus, status),
+)
+
+app.on('ready', () => {
+	registerIpc()
+	createWindows()
+})
+
+app.on('before-quit', () => {
+	isQuitting = true
+})
+
 app.on('window-all-closed', () => {
 	if (process.platform !== 'darwin') {
 		app.quit()
@@ -45,12 +105,9 @@ app.on('window-all-closed', () => {
 })
 
 app.on('activate', () => {
-	// On OS X it's common to re-create a window in the app when the
-	// dock icon is clicked and there are no other windows open.
-	if (BrowserWindow.getAllWindows().length === 0) {
-		createWindow()
+	if (!mainWindow) {
+		createWindows()
+		return
 	}
+	mainWindow.show()
 })
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
