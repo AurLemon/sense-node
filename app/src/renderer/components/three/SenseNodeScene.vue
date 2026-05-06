@@ -57,6 +57,7 @@ onMounted(() => {
 		powerPreference: 'high-performance',
 	})
 	renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+	renderer.domElement.className = 'block h-full w-full'
 	canvasHost.value.appendChild(renderer.domElement)
 
 	keyLight = new THREE.DirectionalLight('#d6e4ff', 1.8)
@@ -280,13 +281,21 @@ function setBoardTheme(
 </script>
 
 <template>
-	<div class="scene-layout">
-		<div ref="canvasHost" class="scene-host panel" />
-		<div v-if="!device.currentFrame" class="panel notice">
+	<div class="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto_auto] gap-3">
+		<div
+			ref="canvasHost"
+			class="grid h-full min-h-0 place-items-center overflow-hidden rounded-lg border border-default bg-default/75 shadow-sm backdrop-blur"
+		/>
+		<div
+			v-if="!device.currentFrame"
+			class="rounded-lg border border-default bg-default/75 p-2.5 text-muted shadow-sm backdrop-blur"
+		>
 			{{ t('device.notConnected') }}
 		</div>
 		<MetricGrid :items="metrics" />
-		<div class="debug panel mono">
+		<div
+			class="flex gap-4 rounded-lg border border-default bg-default/75 p-2.5 font-['JetBrains_Mono','MiSans',monospace] text-xs text-muted shadow-sm backdrop-blur"
+		>
 			<span
 				>{{ t('device.stabilizerState') }}:
 				{{ device.stabilizerSnapshot.state }}</span
@@ -305,40 +314,3 @@ function setBoardTheme(
 		</div>
 	</div>
 </template>
-
-<style scoped>
-.scene-layout {
-	display: grid;
-	grid-template-rows: 1fr auto auto;
-	gap: 12px;
-	width: 100%;
-	height: 100%;
-	min-height: 0;
-}
-
-.scene-host {
-	min-height: 0;
-	overflow: hidden;
-	display: grid;
-	place-items: center;
-}
-
-.scene-host :deep(canvas) {
-	display: block;
-	width: 100%;
-	height: 100%;
-}
-
-.debug {
-	display: flex;
-	gap: 16px;
-	padding: 10px;
-	color: var(--color-text-muted);
-	font-size: 12px;
-}
-
-.notice {
-	padding: 10px;
-	color: var(--color-text-muted);
-}
-</style>

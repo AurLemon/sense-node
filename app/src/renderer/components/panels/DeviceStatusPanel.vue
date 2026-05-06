@@ -39,13 +39,18 @@ const metrics = computed(() => [
 </script>
 
 <template>
-	<div class="page">
+	<div class="grid gap-3">
 		<SerialConnectionBar />
-		<div v-if="!device.currentFrame" class="panel notice">
+		<div
+			v-if="!device.currentFrame"
+			class="rounded-lg border border-default bg-default/75 p-3 text-muted shadow-sm backdrop-blur"
+		>
 			{{ t('device.notConnected') }}
 		</div>
 		<MetricGrid :items="metrics" />
-		<div class="panel state mono">
+		<div
+			class="rounded-lg border border-default bg-default/75 p-3 leading-8 text-highlighted shadow-sm backdrop-blur"
+		>
 			<div>
 				{{ t('device.stabilizerState') }}: {{ device.stabilizerSnapshot.state }}
 			</div>
@@ -64,21 +69,3 @@ const metrics = computed(() => [
 		</div>
 	</div>
 </template>
-
-<style scoped>
-.page {
-	display: grid;
-	gap: 12px;
-}
-
-.state {
-	padding: 12px;
-	color: var(--color-text-strong);
-	line-height: 1.8;
-}
-
-.notice {
-	padding: 12px;
-	color: var(--color-text-muted);
-}
-</style>

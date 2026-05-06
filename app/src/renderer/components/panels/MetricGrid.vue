@@ -5,37 +5,18 @@ defineProps<{
 </script>
 
 <template>
-	<div class="metrics">
-		<div v-for="item in items" :key="item.label" class="metric panel">
-			<div class="label">{{ item.label }}</div>
-			<div class="value mono">{{ item.value ?? '-' }}</div>
+	<div class="grid grid-cols-4 gap-2.5">
+		<div
+			v-for="item in items"
+			:key="item.label"
+			class="min-h-16 rounded-lg border border-default bg-default/75 p-2.5 shadow-sm backdrop-blur"
+		>
+			<div class="text-xs text-muted">{{ item.label }}</div>
+			<div
+				class="mt-2 overflow-hidden text-ellipsis whitespace-nowrap font-['JetBrains_Mono','MiSans',monospace] text-base text-default"
+			>
+				{{ item.value ?? '-' }}
+			</div>
 		</div>
 	</div>
 </template>
-
-<style scoped>
-.metrics {
-	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 10px;
-}
-
-.metric {
-	padding: 10px;
-	min-height: 64px;
-}
-
-.label {
-	color: var(--color-text-subtle);
-	font-size: 12px;
-}
-
-.value {
-	margin-top: 8px;
-	font-size: 16px;
-	color: var(--color-text);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-</style>
