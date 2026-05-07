@@ -52,7 +52,7 @@ const tabSectionClass = computed(() =>
 const tabContentClass = computed(() =>
 	activeTab.value === 'scene'
 		? 'h-full w-full'
-		: 'min-h-full w-full px-3.5 pt-24 pb-36',
+		: 'min-h-full min-w-0 w-full px-3.5 pt-24 pb-36',
 )
 
 const overlayScrollOptions = {

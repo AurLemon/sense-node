@@ -447,7 +447,7 @@ onBeforeUnmount(() => {
 
 <template>
 	<div
-		class="grid gap-3 rounded-lg border border-default bg-default/75 p-3 backdrop-blur"
+		class="grid min-w-0 gap-3 overflow-hidden rounded-lg border border-default bg-default/75 p-3 backdrop-blur"
 	>
 		<div class="flex items-center justify-between gap-3">
 			<div>
@@ -463,14 +463,20 @@ onBeforeUnmount(() => {
 			</UBadge>
 		</div>
 
-		<div v-if="hasChartData" class="grid gap-3">
+		<div v-if="hasChartData" class="grid min-w-0 gap-3">
 			<div class="grid gap-1.5">
 				<div class="text-xs text-muted">{{ t('chart.imu') }}</div>
-				<div ref="imuChartEl" class="h-[180px] w-full"></div>
+				<div
+					ref="imuChartEl"
+					class="h-[180px] min-w-0 w-full overflow-hidden"
+				></div>
 			</div>
 			<div class="grid gap-1.5">
 				<div class="text-xs text-muted">{{ t('chart.tof') }}</div>
-				<div ref="tofChartEl" class="h-[140px] w-full"></div>
+				<div
+					ref="tofChartEl"
+					class="h-[140px] min-w-0 w-full overflow-hidden"
+				></div>
 			</div>
 		</div>
 		<div v-else class="grid h-52 place-items-center text-sm text-muted">
