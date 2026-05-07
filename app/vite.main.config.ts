@@ -8,6 +8,7 @@ export default defineConfig({
 				'@serialport/bindings-cpp',
 				'@serialport/parser-readline',
 				'@serialport/stream',
+				'better-sqlite3',
 			],
 		},
 	},

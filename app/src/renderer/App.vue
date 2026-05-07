@@ -5,13 +5,17 @@ import { useToast } from '@nuxt/ui/composables'
 import BottomTabs from './components/layout/BottomTabs.vue'
 import SenseNodeScene from './components/three/SenseNodeScene.vue'
 import DeviceStatusPanel from './components/panels/DeviceStatusPanel.vue'
+import EventManagementPanel from './components/panels/EventManagementPanel.vue'
 import SettingsPanel from './components/panels/SettingsPanel.vue'
 import { useI18n } from './lib/i18n'
+import { stableEvents } from '../shared/types/sensenode'
+import { useEventStore } from './stores/eventStore'
 import { useDeviceStore } from './stores/deviceStore'
 import { useSerialStore } from './stores/serialStore'
 import { useSettingsStore } from './stores/settingsStore'
 
 const device = useDeviceStore()
+const events = useEventStore()
 const serial = useSerialStore()
 const settings = useSettingsStore()
 const { t } = useI18n()
@@ -33,9 +37,25 @@ const statusDotStyle = computed(() =>
 
 const tabComponent = computed(() => {
 	if (activeTab.value === 'device') return DeviceStatusPanel
+	if (activeTab.value === 'events') return EventManagementPanel
 	if (activeTab.value === 'settings') return SettingsPanel
 	return SenseNodeScene
 })
+
+events.loadTasks()
+let firstStableEvent = true
+
+watch(
+	() => device.stableEvent,
+	(event) => {
+		if (firstStableEvent) {
+			firstStableEvent = false
+			return
+		}
+		void events.notifyStableEvent(event)
+	},
+	{ immediate: true },
+)
 
 watch(
 	() => settings.eventStabilizerEnabled,
@@ -102,7 +122,7 @@ onBeforeUnmount(() => {
 			:class="
 				activeTab === 'scene'
 					? 'relative h-screen overflow-hidden'
-					: 'relative min-h-screen'
+					: 'relative min-h-screen bg-default text-default'
 			"
 		>
 			<header class="sticky left-0 top-0 right-0 z-[1] h-12">
@@ -114,11 +134,11 @@ onBeforeUnmount(() => {
 				>
 					<div class="min-w-0">
 						<div
-							class="flex items-center gap-2 text-[18px] font-semibold leading-none"
+							class="flex items-center gap-2 text-xl font-semibold leading-none"
 						>
 							<motion.span
 								:key="serial.status.state"
-								class="inline-block h-2 w-2 rounded-full"
+								class="inline-block h-2.5 w-2.5 rounded-full"
 								:style="statusDotStyle"
 								:initial="{ scale: 0.6, opacity: 0.3 }"
 								:animate="{ scale: [0.85, 1.18, 1], opacity: 1 }"
@@ -140,7 +160,7 @@ onBeforeUnmount(() => {
 							variant="soft"
 							class="text-xs uppercase"
 						>
-							{{ device.stableEvent }} ·
+							{{ t(`events.event.${device.stableEvent}`) }} ·
 							{{ t('app.fps') }}
 							{{ serial.status.fps }} · {{ t('app.inference') }}
 							{{ device.currentFrame?.inference_ms ?? '-' }} ms

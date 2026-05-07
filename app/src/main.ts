@@ -1,15 +1,20 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import started from 'electron-squirrel-startup'
 import { ipcChannels } from './main/bridge/ipcChannels'
+import { executeEventTask } from './main/events/eventExecutor'
+import { EventTaskStore } from './main/storage/eventTaskStore'
 import { listSerialPorts } from './main/serial/serialScanner'
 import { SerialService } from './main/serial/serialService'
 import { createMainWindow } from './main/windows/mainWindow'
 import {
 	createAppTray,
+	getEventLabel,
 	setTrayLocale,
 	refreshAppTray,
+	showTrayEventNotification,
 } from './main/windows/tray'
 import { normalizeLocale } from './shared/i18n'
+import type { StableEvent } from './shared/types/sensenode'
 
 if (started) {
 	app.quit()
@@ -20,6 +25,9 @@ app.setAppUserModelId('SenseNode')
 let mainWindow: BrowserWindow | null = null
 let isQuitting = false
 const serialService = new SerialService()
+const eventTaskStore = new EventTaskStore()
+const eventThrottle = new Map<string, number>()
+const taskThrottle = new Map<string, number>()
 
 function broadcast(channel: string, payload: unknown): void {
 	for (const window of BrowserWindow.getAllWindows()) {
@@ -61,6 +69,39 @@ function registerIpc(): void {
 			},
 		})
 	})
+	ipcMain.handle(ipcChannels.eventTasksList, () => eventTaskStore.list())
+	ipcMain.handle(ipcChannels.eventTasksUpsert, (_event, task) =>
+		eventTaskStore.upsert(task),
+	)
+	ipcMain.handle(ipcChannels.eventTasksRemove, (_event, id: string) => {
+		eventTaskStore.remove(id)
+	})
+	ipcMain.handle(
+		ipcChannels.eventNotifyStable,
+		(_event, stableEvent: string) => {
+			handleStableEvent(stableEvent)
+		},
+	)
+}
+
+function handleStableEvent(stableEvent: string): void {
+	const now = Date.now()
+	const lastAt = eventThrottle.get(stableEvent) ?? 0
+	if (now - lastAt < 2000) return
+	eventThrottle.set(stableEvent, now)
+	const tasks = eventTaskStore.findByEvent(stableEvent)
+	showTrayEventNotification(
+		'SenseNode',
+		getEventLabel(normalizeLocale(app.getLocale()), stableEvent as StableEvent),
+	)
+	for (const task of tasks) {
+		const lastRun = taskThrottle.get(task.id) ?? 0
+		if (task.cooldownMs > 0 && now - lastRun < task.cooldownMs) {
+			continue
+		}
+		taskThrottle.set(task.id, now)
+		executeEventTask(task, stableEvent)
+	}
 }
 
 function showMainWindow(): void {

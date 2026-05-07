@@ -14,13 +14,13 @@ const serial = useSerialStore()
 const { t } = useI18n()
 const isConnected = computed(() => serial.status.state === 'connected')
 const eventModalUi = {
-	overlay: 'fixed inset-0 z-[80] bg-default/65 backdrop-blur-sm',
-	content: 'z-[90] max-w-5xl max-h-[calc(100dvh-8rem)] overflow-hidden',
+	overlay: 'fixed inset-0 z-[120] bg-default/65',
+	content: 'z-[130] max-w-5xl max-h-[calc(100dvh-8rem)] overflow-hidden',
 	body: 'h-[min(62vh,calc(100dvh-13rem))] min-h-0',
 }
 const serialModalUi = {
-	overlay: 'fixed inset-0 z-[80] bg-default/65 backdrop-blur-sm',
-	content: 'z-[90] max-w-4xl max-h-[calc(100dvh-8rem)] overflow-hidden',
+	overlay: 'fixed inset-0 z-[120] bg-default/65',
+	content: 'z-[130] max-w-4xl max-h-[calc(100dvh-8rem)] overflow-hidden',
 	body: 'h-[min(62vh,calc(100dvh-13rem))] min-h-0',
 }
 

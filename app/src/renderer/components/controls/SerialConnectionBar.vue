@@ -11,6 +11,11 @@ const settingsOpen = ref(false)
 const discardConfirmOpen = ref(false)
 const portsOpen = ref(false)
 const baudRateDraft = ref(serial.baudRate)
+const settingsModalUi = {
+	overlay: 'fixed inset-0 z-[120] bg-default/65',
+	content: 'z-[130] max-w-sm',
+	footer: 'justify-end',
+}
 
 const portItems = computed(() =>
 	serial.ports.map((port) => {
@@ -153,7 +158,9 @@ function showConnectFailedToast(): void {
 			<UModal
 				v-model:open="modalOpen"
 				:title="t('serial.connectionSettings')"
-				:ui="{ content: 'max-w-sm', footer: 'justify-end' }"
+				:overlay="true"
+				:portal="true"
+				:ui="settingsModalUi"
 			>
 				<UTooltip :text="t('common.settings')">
 					<UButton
@@ -181,6 +188,7 @@ function showConnectFailedToast(): void {
 
 				<template #footer>
 					<UButton
+						icon="i-lucide-save"
 						color="primary"
 						variant="solid"
 						type="button"
@@ -194,7 +202,9 @@ function showConnectFailedToast(): void {
 			<UModal
 				v-model:open="discardConfirmOpen"
 				:title="t('serial.unsavedSettingsTitle')"
-				:ui="{ content: 'max-w-sm', footer: 'justify-end' }"
+				:overlay="true"
+				:portal="true"
+				:ui="settingsModalUi"
 			>
 				<template #body>
 					<p class="text-sm text-muted">

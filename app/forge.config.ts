@@ -4,21 +4,10 @@ import { MakerZIP } from '@electron-forge/maker-zip'
 import { MakerDeb } from '@electron-forge/maker-deb'
 import { MakerRpm } from '@electron-forge/maker-rpm'
 import { VitePlugin } from '@electron-forge/plugin-vite'
+import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives'
 import { FusesPlugin } from '@electron-forge/plugin-fuses'
 import { FuseV1Options, FuseVersion } from '@electron/fuses'
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
 import path from 'node:path'
-
-const execFileAsync = promisify(execFile)
-
-async function generateAppAssets(): Promise<void> {
-	const scriptPath = path.join(__dirname, 'scripts', 'generate-icons.cjs')
-	await execFileAsync(process.execPath, [scriptPath], {
-		cwd: __dirname,
-		env: process.env,
-	})
-}
 
 const config: ForgeConfig = {
 	packagerConfig: {
@@ -34,10 +23,9 @@ const config: ForgeConfig = {
 		new MakerRpm({}),
 		new MakerDeb({}),
 	],
-	hooks: {
-		generateAssets: generateAppAssets,
-	},
+	hooks: {},
 	plugins: [
+		new AutoUnpackNativesPlugin({}),
 		new VitePlugin({
 			// `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.
 			// If you are familiar with Vite configuration, it will look really familiar.

@@ -79,6 +79,47 @@ export type StableEvent =
 	| 'reject'
 	| 'unknown'
 
+export const stableEvents: StableEvent[] = [
+	'idle',
+	'tap',
+	'board_motion',
+	'hand_hover',
+	'hand_near',
+	'hand_leave',
+	'reject',
+	'unknown',
+]
+
+export type EventActionType = 'notify' | 'run_exe' | 'run_script'
+
+export interface EventActionConfig {
+	type: EventActionType
+	title: string
+	message: string
+	command?: string
+	arguments?: string[]
+}
+
+export interface EventTask {
+	id: string
+	name: string
+	enabled: boolean
+	event: StableEvent
+	cooldownMs: number
+	action: EventActionConfig
+	createdAt: number
+	updatedAt: number
+}
+
+export interface EventExecutionLog {
+	id: string
+	taskId: string
+	event: StableEvent
+	createdAt: number
+	result: 'skipped' | 'success' | 'failed'
+	message: string
+}
+
 export interface StabilizerSnapshot {
 	rawEvent: StableEvent
 	stableEvent: StableEvent

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as echarts from 'echarts'
 import type { ECharts, EChartsOption, LineSeriesOption } from 'echarts'
 import { useI18n } from '../../lib/i18n'
@@ -363,8 +363,18 @@ function renderCharts(): void {
 		return
 	}
 
+	if (imuChart && imuChart.getDom() !== imuChartEl.value) {
+		imuChart.dispose()
+		imuChart = null
+	}
+
 	if (!imuChart) {
 		imuChart = echarts.init(imuChartEl.value)
+	}
+
+	if (tofChart && tofChart.getDom() !== tofChartEl.value) {
+		tofChart.dispose()
+		tofChart = null
 	}
 
 	if (!tofChart) {
@@ -394,7 +404,27 @@ onMounted(() => {
 	if (tofChartEl.value) {
 		resizeObserver.observe(tofChartEl.value)
 	}
+
+	window.addEventListener('resize', resizeCharts)
 })
+
+watch(
+	() => hasChartData.value,
+	async (hasData) => {
+		if (!hasData) {
+			imuChart?.dispose()
+			imuChart = null
+			tofChart?.dispose()
+			tofChart = null
+			return
+		}
+
+		await nextTick()
+		renderCharts()
+		resizeCharts()
+	},
+	{ flush: 'post' },
+)
 
 watch(
 	() => [chartState.value, settings.themeMode, settings.locale] as const,
@@ -407,6 +437,7 @@ watch(
 onBeforeUnmount(() => {
 	resizeObserver?.disconnect()
 	resizeObserver = null
+	window.removeEventListener('resize', resizeCharts)
 	imuChart?.dispose()
 	tofChart?.dispose()
 	imuChart = null

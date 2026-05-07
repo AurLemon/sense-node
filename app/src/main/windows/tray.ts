@@ -2,6 +2,7 @@ import { Menu, Tray, app } from 'electron'
 import type { SerialService } from '../serial/serialService'
 import type { Locale } from '../../shared/i18n'
 import { normalizeLocale } from '../../shared/i18n'
+import type { StableEvent } from '../../shared/types/sensenode'
 import { getAppIcon } from './appIcon'
 
 let tray: Tray | null = null
@@ -19,6 +20,29 @@ const trayLabels = {
 		pauseSerial: 'Pause Serial',
 		resumeSerial: 'Resume Serial',
 		quit: 'Quit',
+	},
+} as const
+
+const eventLabels = {
+	'zh-CN': {
+		idle: '空闲',
+		tap: '点击',
+		board_motion: '板载运动',
+		hand_hover: '手悬停',
+		hand_near: '手靠近',
+		hand_leave: '手离开',
+		reject: '拒绝',
+		unknown: '未知',
+	},
+	'en-US': {
+		idle: 'Idle',
+		tap: 'Tap',
+		board_motion: 'Board motion',
+		hand_hover: 'Hand hover',
+		hand_near: 'Hand near',
+		hand_leave: 'Hand leave',
+		reject: 'Reject',
+		unknown: 'Unknown',
 	},
 } as const
 
@@ -74,4 +98,17 @@ export function refreshAppTray(args: {
 	onQuit: () => void
 }): void {
 	refreshTrayMenu(args)
+}
+
+export function showTrayEventNotification(title: string, body: string): void {
+	if (!tray) return
+	tray.displayBalloon({
+		title,
+		content: body,
+		iconType: 'info',
+	})
+}
+
+export function getEventLabel(locale: Locale, event: StableEvent): string {
+	return eventLabels[locale]?.[event] ?? event
 }

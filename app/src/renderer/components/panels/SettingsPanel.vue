@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from '../ui/AppIcon.vue'
 import { useI18n } from '../../lib/i18n'
 import { useSettingsStore } from '../../stores/settingsStore'
 
@@ -43,6 +44,16 @@ const { t } = useI18n()
 		<div class="grid min-w-0 gap-1.5">
 			<label class="text-xs text-muted">{{ t('settings.accent') }}</label>
 			<UInput v-model="settings.themeAccent" type="color" />
+		</div>
+		<div
+			class="grid min-w-0 gap-1.5 mt-10 text-slate-400 dark:text-slate-500 text-sm"
+		>
+			<div>{{ t('settings.about.author') }}</div>
+			<div>{{ t('settings.about.disclaimer') }}</div>
+			<div class="inline-flex items-center gap-1.5">
+				<AppIcon name="lucide:bot" :size="14" class="inline-block" />
+				<span>{{ t('settings.about.agent') }}</span>
+			</div>
 		</div>
 	</div>
 </template>

@@ -215,15 +215,16 @@ function resolveTargetRotation(frame: SenseNodeFrame | null): THREE.Euler {
 		return new THREE.Euler(0, 0, 0)
 	}
 
-	const pitch = frame.pitch ?? Math.atan2(frame.accel.y, frame.accel.z)
-	const roll =
+	const pitch = -(frame.pitch ?? Math.atan2(frame.accel.y, frame.accel.z))
+	const roll = -(
 		frame.roll ??
 		Math.atan2(
 			-frame.accel.x,
 			Math.sqrt(frame.accel.y ** 2 + frame.accel.z ** 2),
 		)
+	)
 	const yaw = frame.yaw ?? targetRotation.y * 0.96
-	return new THREE.Euler(clampAngle(pitch), clampAngle(yaw), clampAngle(roll))
+	return new THREE.Euler(clampAngle(roll), clampAngle(yaw), clampAngle(pitch))
 }
 
 function vectorMag(value?: { x: number; y: number; z: number }): number {

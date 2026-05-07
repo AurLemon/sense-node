@@ -1,14 +1,17 @@
 import { app, nativeImage } from 'electron'
 import path from 'node:path'
 
-let cachedIcon: Electron.NativeImage | null = null
+const assetDir = path.join(app.getAppPath(), 'src/main/assets')
+const iconBaseName = 'app-icon'
 
-export function getAppIcon(): Electron.NativeImage {
-	if (cachedIcon) {
-		return cachedIcon
+function resolveIconPath(): string {
+	if (process.platform === 'win32') {
+		return path.join(assetDir, `${iconBaseName}.ico`)
 	}
 
-	const pngPath = path.join(app.getAppPath(), 'src/main/assets/app-icon.png')
-	cachedIcon = nativeImage.createFromPath(pngPath)
-	return cachedIcon
+	return path.join(assetDir, `${iconBaseName}.png`)
+}
+
+export function getAppIcon(): Electron.NativeImage {
+	return nativeImage.createFromPath(resolveIconPath())
 }

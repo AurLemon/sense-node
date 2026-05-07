@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { ipcChannels } from './main/bridge/ipcChannels'
 import type {
 	DataSourceStatus,
+	EventTask,
 	SenseNodeFrame,
 	SerialLineEntry,
 	SerialPortInfo,
@@ -43,5 +44,15 @@ contextBridge.exposeInMainWorld('sensenode', {
 			ipcRenderer.invoke(ipcChannels.appShowMainWindow),
 		setLocale: (locale: string): Promise<void> =>
 			ipcRenderer.invoke(ipcChannels.appSetLocale, locale),
+	},
+	events: {
+		notifyStableEvent: (event: string): Promise<void> =>
+			ipcRenderer.invoke(ipcChannels.eventNotifyStable, event),
+		listTasks: (): Promise<EventTask[]> =>
+			ipcRenderer.invoke(ipcChannels.eventTasksList),
+		saveTask: (task: EventTask): Promise<EventTask> =>
+			ipcRenderer.invoke(ipcChannels.eventTasksUpsert, task),
+		removeTask: (id: string): Promise<void> =>
+			ipcRenderer.invoke(ipcChannels.eventTasksRemove, id),
 	},
 })
