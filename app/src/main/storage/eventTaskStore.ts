@@ -42,6 +42,7 @@ export class EventTaskStore {
 	}
 
 	upsert(task: EventTask): EventTask {
+		const row = toRow(task)
 		this.db
 			.prepare(
 				`insert into event_tasks
@@ -59,7 +60,7 @@ export class EventTaskStore {
 				arguments=excluded.arguments,
 				updatedAt=excluded.updatedAt`,
 			)
-			.run(toRow(task))
+			.run(row)
 		return task
 	}
 

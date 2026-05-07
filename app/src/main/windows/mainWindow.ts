@@ -8,8 +8,6 @@ export function createMainWindow(): BrowserWindow {
 		height: 700,
 		minWidth: 450,
 		minHeight: 700,
-		maxWidth: 550,
-		maxHeight: 850,
 		backgroundColor: '#FAFAFA',
 		icon: getAppIcon(),
 		title: 'SenseNode',
@@ -19,6 +17,7 @@ export function createMainWindow(): BrowserWindow {
 			contextIsolation: true,
 			nodeIntegration: false,
 			sandbox: false,
+			devTools: true,
 		},
 	})
 
@@ -29,6 +28,9 @@ export function createMainWindow(): BrowserWindow {
 
 	if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
 		void window.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
+		window.webContents.once('did-finish-load', () => {
+			window.webContents.openDevTools({ mode: 'detach' })
+		})
 	} else {
 		void window.loadFile(
 			path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),

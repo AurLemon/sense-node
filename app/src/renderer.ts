@@ -1,4 +1,5 @@
 import { createPinia } from 'pinia'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import ui from '@nuxt/ui/vue-plugin'
 import { addCollection } from '@iconify/vue'
 import lucideIcons from '@iconify-json/lucide/icons.json'
@@ -11,4 +12,9 @@ import './renderer/styles/tailwind.css'
 
 addCollection(lucideIcons)
 
-createApp(App).use(createPinia()).use(ui).mount('#app')
+const router = createRouter({
+	history: createMemoryHistory(),
+	routes: [],
+})
+
+createApp(App).use(createPinia()).use(router).use(ui).mount('#app')

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, toRaw, watch } from 'vue'
 import { useToast } from '@nuxt/ui/composables'
 import { useI18n } from '../../lib/i18n'
 import { useDeviceStore } from '../../stores/deviceStore'
@@ -30,6 +30,7 @@ const selectUi = {
 
 const draft = reactive<EventTask>(createDraft())
 const argsText = ref('')
+const isSaving = ref(false)
 
 const actionOptions = computed<
 	Array<{ value: EventActionType; label: string }>
@@ -66,6 +67,29 @@ function createDraft(): EventTask {
 	}
 }
 
+function validateDraft(): string | null {
+	if (!draft.name.trim()) return t('events.task.name')
+	if (!draft.event) return t('events.task.event')
+	if (!draft.action.type) return t('events.task.action')
+	if (!draft.action.title.trim()) return t('events.task.notifyTitle')
+	if (!draft.action.message.trim()) return t('events.task.notifyBody')
+	if (
+		!Number.isFinite(Number(draft.cooldownMs)) ||
+		Number(draft.cooldownMs) < 0
+	) {
+		return t('events.task.cooldown')
+	}
+
+	if (
+		(draft.action.type === 'run_exe' || draft.action.type === 'run_script') &&
+		!draft.action.command?.trim()
+	) {
+		return t('events.task.command')
+	}
+
+	return null
+}
+
 function startCreate(): void {
 	editingId.value = null
 	Object.assign(draft, createDraft())
@@ -74,22 +98,43 @@ function startCreate(): void {
 }
 
 function editTask(task: EventTask): void {
-	editingId.value = task.id
-	Object.assign(draft, structuredClone(task))
-	argsText.value = task.action.arguments?.join(', ') ?? ''
-	modalOpen.value = true
+	try {
+		editingId.value = task.id
+		Object.assign(draft, structuredClone(toRaw(task)))
+		argsText.value = task.action.arguments?.join(', ') ?? ''
+		modalOpen.value = true
+	} catch (error) {
+		console.error('Failed to open event task editor:', error)
+		const detail =
+			error instanceof Error
+				? error.message
+				: typeof error === 'string'
+					? error
+					: ''
+		toast.add({
+			title: detail
+				? `${t('events.task.saveFailed')}: ${detail}`
+				: t('events.task.saveFailed'),
+			color: 'error',
+		})
+	}
 }
 
 function buildPayload(): EventTask {
 	const now = Date.now()
+	const actionType = draft.action.type
 	return {
-		...structuredClone(draft),
 		id: editingId.value ?? (draft.id || crypto.randomUUID()),
+		name: draft.name.trim(),
+		enabled: Boolean(draft.enabled),
+		event: draft.event,
 		cooldownMs: Number(draft.cooldownMs) || 0,
 		createdAt: editingId.value ? draft.createdAt : now,
 		updatedAt: now,
 		action: {
-			...draft.action,
+			type: actionType,
+			title: draft.action.title.trim(),
+			message: draft.action.message.trim(),
 			command: draft.action.command?.trim() || undefined,
 			arguments: argsText.value
 				.split(',')
@@ -100,20 +145,61 @@ function buildPayload(): EventTask {
 }
 
 async function save(): Promise<void> {
-	if (!draft.name.trim()) {
-		toast.add({ title: t('events.task.invalid'), color: 'warning' })
+	if (isSaving.value) return
+	const missingField = validateDraft()
+	if (missingField) {
+		toast.add({
+			title: t('events.task.invalid'),
+			description: missingField,
+			color: 'warning',
+		})
 		return
 	}
 
-	await events.saveTask(buildPayload())
-	toast.add({ title: t('events.task.saved'), color: 'success' })
-	modalOpen.value = false
+	isSaving.value = true
+	try {
+		await events.saveTask(buildPayload())
+		toast.add({ title: t('events.task.saved'), color: 'success' })
+		modalOpen.value = false
+	} catch (error) {
+		console.error('Failed to save event task:', error)
+		const detail =
+			error instanceof Error
+				? error.message
+				: typeof error === 'string'
+					? error
+					: ''
+		toast.add({
+			title: detail
+				? `${t('events.task.saveFailed')}: ${detail}`
+				: t('events.task.saveFailed'),
+			color: 'error',
+		})
+	} finally {
+		isSaving.value = false
+	}
 }
 
 async function removeTask(id: string): Promise<void> {
-	await events.removeTask(id)
-	toast.add({ title: t('events.task.deleted'), color: 'success' })
-	if (editingId.value === id) modalOpen.value = false
+	try {
+		await events.removeTask(id)
+		toast.add({ title: t('events.task.deleted'), color: 'success' })
+		if (editingId.value === id) modalOpen.value = false
+	} catch (error) {
+		console.error('Failed to remove event task:', error)
+		const detail =
+			error instanceof Error
+				? error.message
+				: typeof error === 'string'
+					? error
+					: ''
+		toast.add({
+			title: detail
+				? `${t('events.task.saveFailed')}: ${detail}`
+				: t('events.task.saveFailed'),
+			color: 'error',
+		})
+	}
 }
 
 watch(
@@ -131,23 +217,18 @@ if (events.tasks.length === 0) {
 
 <template>
 	<div class="grid gap-3">
-		<div class="flex items-center justify-between gap-3">
-			<UBadge color="neutral" variant="soft">
-				{{ t('events.event.' + events.activeEvent) }}
-			</UBadge>
-
-			<UTooltip :text="t('events.task.add')">
-				<UButton
-					icon="i-lucide-plus"
-					color="neutral"
-					variant="ghost"
-					size="sm"
-					type="button"
-					:aria-label="t('events.task.add')"
-					@click="startCreate"
-				/>
-			</UTooltip>
-		</div>
+		<UTooltip :text="t('events.task.add')">
+			<UButton
+				class="justify-self-start"
+				icon="i-lucide-plus"
+				color="neutral"
+				variant="ghost"
+				size="sm"
+				type="button"
+				:aria-label="t('events.task.add')"
+				@click="startCreate"
+			/>
+		</UTooltip>
 
 		<div
 			v-if="events.tasks.length === 0"
@@ -160,7 +241,7 @@ if (events.tasks.length === 0) {
 			<article
 				v-for="task in events.tasks"
 				:key="task.id"
-				class="grid gap-2 py-3"
+				class="grid gap-2 rounded-lg border border-default bg-default/75 p-2.5 backdrop-blur"
 			>
 				<div class="flex items-start justify-between gap-3">
 					<div class="min-w-0">
@@ -220,11 +301,6 @@ if (events.tasks.length === 0) {
 			</article>
 		</div>
 
-		<div class="pt-2 text-xs text-muted">
-			{{ t('events.task.lastRun') }}:
-			{{ t(`events.event.${events.activeEvent}`) }}
-		</div>
-
 		<UModal
 			v-model:open="modalOpen"
 			:title="editingId ? t('events.task.save') : t('events.task.add')"
@@ -234,11 +310,11 @@ if (events.tasks.length === 0) {
 		>
 			<template #body>
 				<div class="grid gap-3">
-					<UFormField :label="t('events.task.name')">
-						<UInput v-model="draft.name" size="sm" class="w-full" />
+					<UFormField :label="t('events.task.name')" required>
+						<UInput v-model="draft.name" size="sm" class="w-full" required />
 					</UFormField>
 
-					<UFormField :label="t('events.task.event')">
+					<UFormField :label="t('events.task.event')" required>
 						<USelect
 							v-model="draft.event"
 							:items="eventOptions"
@@ -249,7 +325,7 @@ if (events.tasks.length === 0) {
 						/>
 					</UFormField>
 
-					<UFormField :label="t('events.task.action')">
+					<UFormField :label="t('events.task.action')" required>
 						<USelect
 							v-model="draft.action.type"
 							:items="actionOptions"
@@ -260,15 +336,22 @@ if (events.tasks.length === 0) {
 						/>
 					</UFormField>
 
-					<UFormField :label="t('events.task.notify')">
-						<UInput v-model="draft.action.title" size="sm" class="w-full" />
+					<UFormField :label="t('events.task.notifyTitle')" required>
+						<UInput
+							v-model="draft.action.title"
+							size="sm"
+							class="w-full"
+							:placeholder="t('events.task.notifyTitlePlaceholder')"
+						/>
 					</UFormField>
 
-					<UFormField :label="t('events.task.notify')">
+					<UFormField :label="t('events.task.notifyBody')" required>
 						<UTextarea
 							v-model="draft.action.message"
 							:rows="3"
+							size="sm"
 							class="w-full"
+							:placeholder="t('events.task.notifyBodyPlaceholder')"
 						/>
 					</UFormField>
 
@@ -294,7 +377,7 @@ if (events.tasks.length === 0) {
 						/>
 					</UFormField>
 
-					<UFormField :label="t('events.task.cooldown')">
+					<UFormField :label="t('events.task.cooldown')" required>
 						<UInput
 							v-model="draft.cooldownMs"
 							size="sm"
@@ -327,6 +410,7 @@ if (events.tasks.length === 0) {
 					color="primary"
 					variant="solid"
 					type="button"
+					:loading="isSaving"
 					@click="save"
 				>
 					{{ t('common.save') }}

@@ -1,4 +1,4 @@
-import { Menu, Tray, app } from 'electron'
+import { Menu, Notification, Tray, app } from 'electron'
 import type { SerialService } from '../serial/serialService'
 import type { Locale } from '../../shared/i18n'
 import { normalizeLocale } from '../../shared/i18n'
@@ -107,6 +107,11 @@ export function showTrayEventNotification(title: string, body: string): void {
 		content: body,
 		iconType: 'info',
 	})
+}
+
+export function showGlobalEventNotification(title: string, body: string): void {
+	if (!Notification.isSupported()) return
+	new Notification({ title, body }).show()
 }
 
 export function getEventLabel(locale: Locale, event: StableEvent): string {

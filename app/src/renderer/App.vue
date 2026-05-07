@@ -139,7 +139,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-	<UApp>
+	<UApp :toaster="{ class: 'z-[9999]' }">
 		<main class="relative h-screen overflow-hidden bg-default text-default">
 			<header class="sticky left-0 top-0 right-0 z-[1] h-12">
 				<div

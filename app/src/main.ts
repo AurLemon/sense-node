@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, Menu, ipcMain } from 'electron'
 import started from 'electron-squirrel-startup'
 import { ipcChannels } from './main/bridge/ipcChannels'
 import { executeEventTask } from './main/events/eventExecutor'
@@ -8,10 +8,8 @@ import { SerialService } from './main/serial/serialService'
 import { createMainWindow } from './main/windows/mainWindow'
 import {
 	createAppTray,
-	getEventLabel,
 	setTrayLocale,
 	refreshAppTray,
-	showTrayEventNotification,
 } from './main/windows/tray'
 import { normalizeLocale } from './shared/i18n'
 import type { StableEvent } from './shared/types/sensenode'
@@ -70,11 +68,21 @@ function registerIpc(): void {
 		})
 	})
 	ipcMain.handle(ipcChannels.eventTasksList, () => eventTaskStore.list())
-	ipcMain.handle(ipcChannels.eventTasksUpsert, (_event, task) =>
-		eventTaskStore.upsert(task),
-	)
+	ipcMain.handle(ipcChannels.eventTasksUpsert, (_event, task) => {
+		try {
+			return eventTaskStore.upsert(task)
+		} catch (error) {
+			console.error('[main] event task upsert failed:', error)
+			throw error
+		}
+	})
 	ipcMain.handle(ipcChannels.eventTasksRemove, (_event, id: string) => {
-		eventTaskStore.remove(id)
+		try {
+			eventTaskStore.remove(id)
+		} catch (error) {
+			console.error('[main] event task remove failed:', error)
+			throw error
+		}
 	})
 	ipcMain.handle(
 		ipcChannels.eventNotifyStable,
@@ -90,10 +98,6 @@ function handleStableEvent(stableEvent: string): void {
 	if (now - lastAt < 2000) return
 	eventThrottle.set(stableEvent, now)
 	const tasks = eventTaskStore.findByEvent(stableEvent)
-	showTrayEventNotification(
-		'SenseNode',
-		getEventLabel(normalizeLocale(app.getLocale()), stableEvent as StableEvent),
-	)
 	for (const task of tasks) {
 		const lastRun = taskThrottle.get(task.id) ?? 0
 		if (task.cooldownMs > 0 && now - lastRun < task.cooldownMs) {
@@ -111,6 +115,27 @@ function showMainWindow(): void {
 
 function createWindows(): void {
 	mainWindow = createMainWindow()
+
+	mainWindow.webContents.on('context-menu', (_event, params) => {
+		const menu = Menu.buildFromTemplate([
+			{
+				label: '复制',
+				role: 'copy',
+				enabled: Boolean(params.selectionText),
+			},
+			{
+				label: '粘贴',
+				role: 'paste',
+				enabled: params.editFlags.canPaste,
+			},
+			{
+				label: '全选',
+				role: 'selectAll',
+			},
+		])
+
+		menu.popup({ window: mainWindow ?? undefined })
+	})
 
 	mainWindow.on('close', (event) => {
 		if (isQuitting) {
