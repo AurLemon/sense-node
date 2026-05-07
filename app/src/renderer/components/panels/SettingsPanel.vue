@@ -49,6 +49,7 @@ const expressionSource = computed(() => {
 			<USelect
 				v-model="settings.themeMode"
 				:items="[
+					{ value: 'system', label: t('theme.system') },
 					{ value: 'dark', label: t('theme.dark') },
 					{ value: 'light', label: t('theme.light') },
 				]"

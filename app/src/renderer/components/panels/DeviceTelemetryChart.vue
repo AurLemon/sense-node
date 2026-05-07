@@ -427,7 +427,8 @@ watch(
 )
 
 watch(
-	() => [chartState.value, settings.themeMode, settings.locale] as const,
+	() =>
+		[chartState.value, settings.effectiveThemeMode, settings.locale] as const,
 	() => {
 		renderCharts()
 	},

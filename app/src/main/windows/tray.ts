@@ -3,7 +3,7 @@ import type { SerialService } from '../serial/serialService'
 import type { Locale } from '../../shared/i18n'
 import { normalizeLocale } from '../../shared/i18n'
 import type { StableEvent } from '../../shared/types/sensenode'
-import { getAppIcon } from './appIcon'
+import { getTrayIcon } from './appIcon'
 
 let tray: Tray | null = null
 let currentLocale: Locale = normalizeLocale(app.getLocale())
@@ -80,7 +80,7 @@ export function createAppTray(args: {
 	serialService: SerialService
 	onQuit: () => void
 }): Tray {
-	const image = getAppIcon()
+	const image = getTrayIcon()
 	tray = new Tray(image)
 	tray.setToolTip('SenseNode')
 	tray.on('click', () => args.showMainWindow())
@@ -98,6 +98,11 @@ export function refreshAppTray(args: {
 	onQuit: () => void
 }): void {
 	refreshTrayMenu(args)
+}
+
+export function refreshTrayIcon(): void {
+	if (!tray) return
+	tray.setImage(getTrayIcon())
 }
 
 export function showTrayEventNotification(title: string, body: string): void {

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, ipcMain } from 'electron'
+import { app, BrowserWindow, Menu, ipcMain, nativeTheme } from 'electron'
 import started from 'electron-squirrel-startup'
 import { ipcChannels } from './main/bridge/ipcChannels'
 import { executeEventTask } from './main/events/eventExecutor'
@@ -8,9 +8,11 @@ import { SerialService } from './main/serial/serialService'
 import { createMainWindow } from './main/windows/mainWindow'
 import {
 	createAppTray,
+	refreshTrayIcon,
 	setTrayLocale,
 	refreshAppTray,
 } from './main/windows/tray'
+import { getAppIcon } from './main/windows/appIcon'
 import { normalizeLocale } from './shared/i18n'
 import type { StableEvent } from './shared/types/sensenode'
 
@@ -18,7 +20,7 @@ if (started) {
 	app.quit()
 }
 
-app.setAppUserModelId('SenseNode')
+app.setAppUserModelId('com.aurlemon.sensenode')
 
 let mainWindow: BrowserWindow | null = null
 let isQuitting = false
@@ -113,6 +115,11 @@ function showMainWindow(): void {
 	mainWindow?.focus()
 }
 
+function refreshThemeIcons(): void {
+	mainWindow?.setIcon(getAppIcon())
+	refreshTrayIcon()
+}
+
 function createWindows(): void {
 	mainWindow = createMainWindow()
 
@@ -163,6 +170,7 @@ serialService.on('status', (status) =>
 app.on('ready', () => {
 	registerIpc()
 	createWindows()
+	nativeTheme.on('updated', refreshThemeIcons)
 })
 
 app.on('before-quit', () => {

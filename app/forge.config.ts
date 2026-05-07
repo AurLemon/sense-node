@@ -9,6 +9,8 @@ import { FusesPlugin } from '@electron-forge/plugin-fuses'
 import { FuseV1Options, FuseVersion } from '@electron/fuses'
 import path from 'node:path'
 
+const appIconPath = path.resolve(__dirname, 'src/main/assets/app-icon.ico')
+
 const config: ForgeConfig = {
 	packagerConfig: {
 		asar: true,
@@ -21,12 +23,13 @@ const config: ForgeConfig = {
 				file.startsWith('/src/main/assets')
 			return !keep
 		},
-		icon: 'src/main/assets/app-icon',
+		icon: appIconPath,
+		executableName: 'SenseNode',
 	},
 	rebuildConfig: {},
 	makers: [
 		new MakerSquirrel({
-			setupIcon: 'src/main/assets/app-icon.ico',
+			setupIcon: appIconPath,
 		}),
 		new MakerZIP({}, ['darwin']),
 		new MakerRpm({}),

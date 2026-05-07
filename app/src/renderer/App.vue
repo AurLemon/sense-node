@@ -52,7 +52,7 @@ const tabSectionClass = computed(() =>
 const tabContentClass = computed(() =>
 	activeTab.value === 'scene'
 		? 'h-full w-full'
-		: 'min-h-full min-w-0 w-full px-3.5 pt-24 pb-36',
+		: 'min-h-full min-w-0 w-full px-3.5 pt-18 pb-36',
 )
 
 const overlayScrollOptions = {
@@ -96,12 +96,27 @@ watch(
 )
 
 watch(
+	() => settings.effectiveThemeMode,
+	(effectiveThemeMode) => {
+		document.documentElement.dataset.theme = effectiveThemeMode
+		document.documentElement.dataset.themePreference = settings.themeMode
+		document.documentElement.style.colorScheme = effectiveThemeMode
+		document.documentElement.classList.toggle(
+			'dark',
+			effectiveThemeMode === 'dark',
+		)
+		document.documentElement.classList.toggle(
+			'light',
+			effectiveThemeMode === 'light',
+		)
+	},
+	{ immediate: true },
+)
+
+watch(
 	() => settings.themeMode,
 	(themeMode) => {
-		document.documentElement.dataset.theme = themeMode
-		document.documentElement.style.colorScheme = themeMode
-		document.documentElement.classList.toggle('dark', themeMode === 'dark')
-		document.documentElement.classList.toggle('light', themeMode === 'light')
+		document.documentElement.dataset.themePreference = themeMode
 	},
 	{ immediate: true },
 )

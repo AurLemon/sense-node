@@ -77,7 +77,7 @@ onMounted(() => {
 	scene.add(node)
 	grid = createGrid()
 	scene.add(grid)
-	applySceneTheme(settings.themeMode)
+	applySceneTheme(settings.effectiveThemeMode)
 
 	resizeObserver = new ResizeObserver(() => resize())
 	resizeObserver.observe(canvasHost.value)
@@ -95,7 +95,7 @@ watch(
 )
 
 watch(
-	() => settings.themeMode,
+	() => settings.effectiveThemeMode,
 	(themeMode) => applySceneTheme(themeMode),
 )
 
