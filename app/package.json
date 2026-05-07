@@ -12,6 +12,7 @@
 		"package": "electron-forge package",
 		"make": "electron-forge make",
 		"publish": "electron-forge publish",
+		"postinstall": "pnpm rebuild better-sqlite3 --unsafe-perm",
 		"generate-icons": "powershell -ExecutionPolicy Bypass -File scripts/generate-app-icons.ps1",
 		"lint": "eslint .",
 		"format": "prettier --write ."
@@ -30,7 +31,8 @@
 			"@serialport/bindings-cpp",
 			"electron",
 			"electron-winstaller",
-			"esbuild"
+			"esbuild",
+			"better-sqlite3"
 		]
 	},
 	"devDependencies": {

@@ -12,8 +12,11 @@ pnpm start
 If you are behind a local proxy, set these variables in the current PowerShell session before running `pnpm install`:
 
 ```powershell
+$OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
 $env:HTTP_PROXY = "http://127.0.0.1:7890"
 $env:HTTPS_PROXY = "http://127.0.0.1:7890"
+$env:npm_config_proxy = "http://127.0.0.1:7890"
+$env:npm_config_https_proxy = "http://127.0.0.1:7890"
 $env:ELECTRON_GET_USE_PROXY = "1"
 $env:ELECTRON_MIRROR = "https://npmmirror.com/mirrors/electron/"
 ```
@@ -21,8 +24,17 @@ $env:ELECTRON_MIRROR = "https://npmmirror.com/mirrors/electron/"
 If a native dependency was skipped or rebuilt incorrectly, rerun:
 
 ```powershell
-pnpm rebuild @serialport/bindings-cpp serialport
+pnpm rebuild better-sqlite3 @serialport/bindings-cpp --unsafe-perm
 ```
+
+## Tips
+
+- `better-sqlite3` is a native dependency used by the main process store, so it must be present at install time and in the final Electron package.
+- `pnpm install` will trigger `postinstall`, which runs `pnpm rebuild better-sqlite3 --unsafe-perm`.
+- If you clean dependencies on a new machine, run `pnpm install` first and then verify `better-sqlite3` is rebuilt before `pnpm make`.
+- For packaging, the Electron Forge config keeps native modules unpacked so the final app can load `better-sqlite3` from `app.asar.unpacked`.
+
+````
 
 For non-dev verification:
 
@@ -30,7 +42,7 @@ For non-dev verification:
 pnpm exec tsc --noEmit
 pnpm lint
 pnpm exec vite build --config vite.renderer.config.mts
-```
+````
 
 `pnpm build` still maps to `electron-forge package`.
 

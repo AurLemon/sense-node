@@ -12,6 +12,15 @@ import path from 'node:path'
 const config: ForgeConfig = {
 	packagerConfig: {
 		asar: true,
+		asarUnpack: ['**/better-sqlite3/**', '**/@serialport/bindings-cpp/**'],
+		ignore: (file: string) => {
+			if (!file) return false
+			const keep =
+				file.startsWith('/.vite') ||
+				file.startsWith('/node_modules') ||
+				file.startsWith('/src/main/assets')
+			return !keep
+		},
 		icon: 'src/main/assets/app-icon',
 	},
 	rebuildConfig: {},
