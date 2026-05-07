@@ -92,3 +92,71 @@ body {
 .dark {
 	color-scheme: dark;
 }
+
+.tab-fade-enter-active,
+.tab-fade-leave-active {
+	transition:
+		opacity 150ms ease,
+		transform 150ms ease;
+}
+
+.tab-fade-enter-from,
+.tab-fade-leave-to {
+	opacity: 0;
+	transform: translateY(8px);
+}
+
+.ag-visible {
+	opacity: 1;
+	transform: translateY(0) scale(1);
+	transition:
+		opacity 180ms ease,
+		transform 180ms ease;
+}
+
+.ag-hidden {
+	opacity: 0;
+	transform: translateY(10px) scale(0.98);
+	transition:
+		opacity 180ms ease,
+		transform 180ms ease;
+}
+
+.os-theme-sensenode {
+	--os-size: 6px;
+	--os-handle-bg: var(--color-surface-3);
+	--os-handle-bg-hover: var(--color-surface-4);
+	--os-handle-bg-active: var(--color-surface-4);
+	--os-track-bg: transparent;
+	--os-track-border-radius: 999px;
+	--os-handle-border-radius: 999px;
+	--os-padding-perpendicular: 2px;
+	--os-padding-axis: 2px;
+}
+
+.os-theme-sensenode [data-overlayscrollbars-viewport] {
+	scrollbar-width: none;
+}
+
+.os-theme-sensenode [data-overlayscrollbars-viewport]::-webkit-scrollbar {
+	display: none;
+}
+
+.os-theme-sensenode .os-scrollbar {
+	padding: 2px;
+}
+
+.os-theme-sensenode .os-scrollbar-handle {
+	background: var(--color-surface-3);
+	border-radius: 999px;
+	opacity: 0.72;
+}
+
+.os-theme-sensenode .os-scrollbar-handle:hover {
+	background: var(--color-surface-4);
+	opacity: 0.9;
+}
+
+.os-theme-sensenode .os-scrollbar-track {
+	background: transparent;
+}

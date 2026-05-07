@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { motion } from 'motion-v'
 import { useToast } from '@nuxt/ui/composables'
+import { OverlayScrollbarsComponent } from 'overlayscrollbars-vue'
 import BottomTabs from './components/layout/BottomTabs.vue'
 import SenseNodeScene from './components/three/SenseNodeScene.vue'
 import DeviceStatusPanel from './components/panels/DeviceStatusPanel.vue'
@@ -41,6 +42,27 @@ const tabComponent = computed(() => {
 	if (activeTab.value === 'settings') return SettingsPanel
 	return SenseNodeScene
 })
+
+const tabSectionClass = computed(() =>
+	activeTab.value === 'scene'
+		? 'absolute inset-0 z-0'
+		: 'absolute inset-x-0 top-12 bottom-16 z-0 overflow-hidden',
+)
+
+const tabContentClass = computed(() =>
+	activeTab.value === 'scene'
+		? 'h-full w-full'
+		: 'h-full w-full px-3.5 pt-8 pb-24',
+)
+
+const overlayScrollOptions = {
+	scrollbars: {
+		theme: 'os-theme-sensenode',
+		autoHide: 'leave',
+		autoHideDelay: 450,
+		clickScroll: true,
+	},
+}
 
 events.loadTasks()
 let firstStableEvent = true
@@ -118,23 +140,17 @@ onBeforeUnmount(() => {
 
 <template>
 	<UApp>
-		<main
-			:class="
-				activeTab === 'scene'
-					? 'relative h-screen overflow-hidden'
-					: 'relative min-h-screen bg-default text-default'
-			"
-		>
+		<main class="relative h-screen overflow-hidden bg-default text-default">
 			<header class="sticky left-0 top-0 right-0 z-[1] h-12">
 				<div
 					class="pointer-events-none absolute left-0 right-0 top-0 -bottom-8 bg-[#FAFAFA]/80 backdrop-blur-[40px] mask-[linear-gradient(to_bottom,black_0%,rgba(0,0,0,0.96)_32%,rgba(0,0,0,0.78)_52%,rgba(0,0,0,0.42)_72%,transparent_100%)] dark:bg-[#192024]/85"
 				/>
 				<div
-					class="relative z-[1] flex h-full items-center justify-between gap-4 px-6 py-4"
+					class="relative z-[1] flex h-full items-center justify-between gap-4 px-4 py-4"
 				>
 					<div class="min-w-0">
 						<div
-							class="flex items-center gap-2 text-xl font-semibold leading-none"
+							class="flex items-center gap-3 text-xl font-semibold leading-none"
 						>
 							<motion.span
 								:key="serial.status.state"
@@ -172,12 +188,23 @@ onBeforeUnmount(() => {
 				</div>
 			</header>
 
-			<section v-if="activeTab === 'scene'" class="absolute inset-0 z-0">
-				<component :is="tabComponent" />
-			</section>
-			<section v-else class="relative z-0 px-3.5 pb-24 pt-8">
-				<component :is="tabComponent" />
-			</section>
+			<Transition name="tab-fade" mode="out-in">
+				<section :key="activeTab" :class="tabSectionClass">
+					<OverlayScrollbarsComponent
+						v-if="activeTab !== 'scene'"
+						defer
+						class="h-full w-full"
+						:options="overlayScrollOptions"
+					>
+						<div :class="tabContentClass">
+							<component :is="tabComponent" />
+						</div>
+					</OverlayScrollbarsComponent>
+					<div v-else :class="tabContentClass">
+						<component :is="tabComponent" />
+					</div>
+				</section>
+			</Transition>
 
 			<footer class="fixed bottom-0 left-0 right-0 z-[1] h-16">
 				<div

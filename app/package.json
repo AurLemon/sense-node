@@ -65,6 +65,8 @@
 		"echarts": "^6.0.0",
 		"electron-squirrel-startup": "^1.0.1",
 		"motion-v": "^2.2.1",
+		"overlayscrollbars": "^2.15.1",
+		"overlayscrollbars-vue": "^0.5.9",
 		"pinia": "^3.0.4",
 		"tailwindcss": "^4.2.4",
 		"three": "^0.184.0",

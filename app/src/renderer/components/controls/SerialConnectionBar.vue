@@ -30,15 +30,11 @@ const portItems = computed(() =>
 )
 
 const isBusy = computed(() =>
-	['scanning', 'connecting', 'disconnecting', 'reconnecting'].includes(
-		serial.status.state,
-	),
+	['connecting', 'disconnecting', 'reconnecting'].includes(serial.status.state),
 )
 
 const isConnected = computed(() => serial.status.state === 'connected')
-const selectedPortModel = computed(() =>
-	isConnected.value ? (serial.status.selectedPort ?? serial.selectedPort) : '',
-)
+const selectedPortModel = computed(() => serial.selectedPort)
 const connectionActionLabel = computed(() =>
 	isConnected.value ? t('common.reconnect') : t('common.connect'),
 )
@@ -69,11 +65,8 @@ watch(portsOpen, (open) => {
 	}
 })
 
-async function selectAndConnect(portPath: string): Promise<void> {
-	const connected = await serial.connectAndValidate(portPath)
-	if (!connected) {
-		showConnectFailedToast()
-	}
+async function selectPort(portPath: string): Promise<void> {
+	serial.selectedPort = portPath
 }
 
 async function connect(): Promise<void> {
@@ -125,7 +118,8 @@ function showConnectFailedToast(): void {
 				}"
 				class="w-48 min-w-0"
 				:disabled="isBusy"
-				@update:model-value="selectAndConnect"
+				:loading="serial.portsRefreshing"
+				@update:model-value="selectPort"
 			/>
 			<UTooltip :text="connectionActionLabel">
 				<UButton

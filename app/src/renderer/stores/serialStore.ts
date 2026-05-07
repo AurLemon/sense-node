@@ -11,6 +11,7 @@ export const useSerialStore = defineStore('serial', () => {
 	const lastSuccessfulPortKey = 'sensenode.serial.lastSuccessfulPort'
 	const frameValidationTimeoutMs = 1000
 	const ports = ref<SerialPortInfo[]>([])
+	const portsRefreshing = ref(false)
 	const lines = ref<SerialLineEntry[]>([])
 	const status = ref<DataSourceStatus>({
 		type: 'serial',
@@ -64,16 +65,20 @@ export const useSerialStore = defineStore('serial', () => {
 	}
 
 	async function refreshPorts(): Promise<void> {
-		const previousStatus = status.value
-		status.value = { ...status.value, state: 'scanning' }
-		ports.value = await window.sensenode.serial.listPorts()
-		const selectedExists = ports.value.some(
-			(port) => port.path === selectedPort.value,
-		)
-		if (!selectedPort.value || !selectedExists) {
-			selectedPort.value = pickDefaultPort()
+		portsRefreshing.value = true
+		try {
+			ports.value = await window.sensenode.serial.listPorts()
+			const selectedExists = ports.value.some(
+				(port) => port.path === selectedPort.value,
+			)
+			const hasActiveConnection = status.value.state === 'connected'
+
+			if (!hasActiveConnection && (!selectedPort.value || !selectedExists)) {
+				selectedPort.value = pickDefaultPort()
+			}
+		} finally {
+			portsRefreshing.value = false
 		}
-		status.value = { ...previousStatus }
 	}
 
 	async function connect(): Promise<boolean> {
@@ -169,6 +174,7 @@ export const useSerialStore = defineStore('serial', () => {
 
 	return {
 		ports,
+		portsRefreshing,
 		lines,
 		status,
 		selectedPort,

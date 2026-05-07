@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as THREE from 'three'
 import { useI18n } from '../../lib/i18n'
 import { useDeviceStore } from '../../stores/deviceStore'
@@ -12,9 +12,7 @@ const device = useDeviceStore()
 const serial = useSerialStore()
 const settings = useSettingsStore()
 const { t } = useI18n()
-const metricsPanel = ref<HTMLDivElement | null>(null)
-const metricsContent = ref<HTMLDivElement | null>(null)
-const metricsWidth = ref('0px')
+const isConnected = computed(() => serial.status.state === 'connected')
 
 let renderer: THREE.WebGLRenderer | null = null
 let scene: THREE.Scene | null = null
@@ -34,21 +32,6 @@ const fixedCameraTarget = new THREE.Vector3(0.04, 0.1, 0)
 
 const accelText = computed(() => formatVec3(device.currentFrame?.accel))
 const gyroText = computed(() => formatVec3(device.currentFrame?.gyro))
-
-watch(
-	[accelText, gyroText],
-	() => {
-		queueMetricsWidthUpdate()
-	},
-	{ immediate: true },
-)
-
-watch(
-	() => serial.status.state,
-	() => {
-		queueMetricsWidthUpdate()
-	},
-)
 
 onMounted(() => {
 	if (!canvasHost.value) return
@@ -82,8 +65,6 @@ onMounted(() => {
 	window.addEventListener('resize', resize)
 	resize()
 	animate()
-
-	queueMetricsWidthUpdate()
 })
 
 watch(
@@ -106,18 +87,6 @@ onBeforeUnmount(() => {
 	renderer?.dispose()
 })
 
-async function queueMetricsWidthUpdate(): Promise<void> {
-	await nextTick()
-	updateMetricsWidth()
-}
-
-function updateMetricsWidth(): void {
-	if (!metricsPanel.value || !metricsContent.value) return
-
-	const width = Math.ceil(metricsContent.value.scrollWidth)
-	metricsWidth.value = `${width}px`
-}
-
 function animate(): void {
 	animationId = requestAnimationFrame(animate)
 	if (!renderer || !scene || !camera || !node) return
@@ -137,7 +106,7 @@ function animate(): void {
 		targetRotation.z,
 		0.24,
 	)
-	node.scale.setScalar(0.78)
+	node.scale.setScalar(0.68)
 	camera.position.copy(fixedCameraPosition)
 	camera.lookAt(fixedCameraTarget)
 	renderer.render(scene, camera)
@@ -315,24 +284,23 @@ function setBoardTheme(
 	<div class="relative h-full w-full overflow-hidden">
 		<div ref="canvasHost" class="h-full w-full" />
 		<div
-			ref="metricsPanel"
-			class="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2 overflow-hidden text-xs text-muted"
-			:style="{
-				width: metricsWidth,
-				transition: 'width 180ms ease-in-out',
-			}"
+			class="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2"
 		>
 			<div
-				ref="metricsContent"
-				class="inline-flex flex-nowrap items-start justify-center gap-4 whitespace-nowrap"
+				class="w-max max-w-[calc(100vw-2rem)] overflow-hidden text-xs text-muted"
+				:class="isConnected ? 'ag-visible' : 'ag-hidden'"
 			>
-				<div class="grid shrink-0 grid-cols-[auto_auto] gap-2">
-					<span class="font-medium text-highlighted">A</span>
-					<span class="tabular-nums">{{ accelText }}</span>
-				</div>
-				<div class="grid shrink-0 grid-cols-[auto_auto] gap-2">
-					<span class="font-medium text-highlighted">G</span>
-					<span class="tabular-nums">{{ gyroText }}</span>
+				<div
+					class="inline-flex flex-nowrap items-start justify-center gap-4 whitespace-nowrap"
+				>
+					<div class="grid shrink-0 grid-cols-[auto_auto] gap-2">
+						<span class="font-medium text-highlighted">A</span>
+						<span class="tabular-nums">{{ accelText }}</span>
+					</div>
+					<div class="grid shrink-0 grid-cols-[auto_auto] gap-2">
+						<span class="font-medium text-highlighted">G</span>
+						<span class="tabular-nums">{{ gyroText }}</span>
+					</div>
 				</div>
 			</div>
 		</div>
