@@ -10,16 +10,12 @@ let currentLocale: Locale = normalizeLocale(app.getLocale())
 const trayLabels = {
 	'zh-CN': {
 		showMainWindow: '显示主窗口',
-		hideHud: '隐藏 HUD',
-		showHud: '显示 HUD',
 		pauseSerial: '暂停串口',
 		resumeSerial: '恢复串口',
 		quit: '退出',
 	},
 	'en-US': {
 		showMainWindow: 'Show Main Window',
-		hideHud: 'Hide HUD',
-		showHud: 'Show HUD',
 		pauseSerial: 'Pause Serial',
 		resumeSerial: 'Resume Serial',
 		quit: 'Quit',
@@ -32,8 +28,6 @@ function getTrayLabels(locale: Locale) {
 
 function refreshTrayMenu(args: {
 	showMainWindow: () => void
-	showHudWindow: () => void
-	hideHudWindow: () => void
 	serialService: SerialService
 	onQuit: () => void
 }): void {
@@ -42,8 +36,6 @@ function refreshTrayMenu(args: {
 	const labels = getTrayLabels(currentLocale)
 	const menu = Menu.buildFromTemplate([
 		{ label: labels.showMainWindow, click: () => args.showMainWindow() },
-		{ label: labels.hideHud, click: () => args.hideHudWindow() },
-		{ label: labels.showHud, click: () => args.showHudWindow() },
 		{ type: 'separator' },
 		{ label: labels.pauseSerial, click: () => args.serialService.pause() },
 		{ label: labels.resumeSerial, click: () => args.serialService.resume() },
@@ -61,8 +53,6 @@ function refreshTrayMenu(args: {
 
 export function createAppTray(args: {
 	showMainWindow: () => void
-	showHudWindow: () => void
-	hideHudWindow: () => void
 	serialService: SerialService
 	onQuit: () => void
 }): Tray {
@@ -80,8 +70,6 @@ export function setTrayLocale(locale: Locale): void {
 
 export function refreshAppTray(args: {
 	showMainWindow: () => void
-	showHudWindow: () => void
-	hideHudWindow: () => void
 	serialService: SerialService
 	onQuit: () => void
 }): void {

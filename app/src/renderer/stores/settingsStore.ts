@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { watch, ref } from 'vue'
-import type { LlmConfig } from '../../shared/types/sensenode'
 import type { Locale } from '../../shared/i18n'
 
 export type ThemeMode = 'dark' | 'light'
@@ -20,7 +19,6 @@ function readStoredValue<T extends string>(key: string, fallback: T): T {
 }
 
 export const useSettingsStore = defineStore('settings', () => {
-	const miniHudEnabled = ref(true)
 	const autoReconnect = ref(true)
 	const eventStabilizerEnabled = ref(true)
 	const locale = ref<Locale>(readStoredValue(storageKeys.locale, 'zh-CN'))
@@ -28,11 +26,6 @@ export const useSettingsStore = defineStore('settings', () => {
 		readStoredValue(storageKeys.themeMode, 'light'),
 	)
 	const themeAccent = ref('#9BA6B2')
-	const llmConfig = ref<LlmConfig>({
-		provider: 'none',
-		endpoint: 'http://localhost:11434',
-		model: '',
-	})
 
 	watch(
 		locale,
@@ -52,12 +45,10 @@ export const useSettingsStore = defineStore('settings', () => {
 	})
 
 	return {
-		miniHudEnabled,
 		autoReconnect,
 		eventStabilizerEnabled,
 		locale,
 		themeMode,
 		themeAccent,
-		llmConfig,
 	}
 })

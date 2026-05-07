@@ -10,6 +10,8 @@ import type {
 import { EventStabilizer } from '../lib/eventStabilizer'
 
 const stabilizer = new EventStabilizer()
+const frameRetentionMs = 5 * 60 * 1000
+const maxRetainedFrames = 6000
 
 export const useDeviceStore = defineStore('device', () => {
 	const currentFrame = ref<SenseNodeFrame | null>(null)
@@ -35,8 +37,12 @@ export const useDeviceStore = defineStore('device', () => {
 		}
 		currentFrame.value = normalized
 		frames.value.unshift(normalized)
-		if (frames.value.length > 220) {
-			frames.value.length = 220
+		const retentionStart = normalized.timestamp - frameRetentionMs
+		frames.value = frames.value.filter(
+			(item) => (item.timestamp ?? 0) >= retentionStart,
+		)
+		if (frames.value.length > maxRetainedFrames) {
+			frames.value.length = maxRetainedFrames
 		}
 
 		if (normalized.type !== 'sensor_frame') {

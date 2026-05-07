@@ -9,21 +9,16 @@ const { t } = useI18n()
 const tabs = computed(() => [
 	{ id: 'scene', label: t('tab.scene'), icon: 'lucide:square-activity' },
 	{ id: 'device', label: t('tab.device'), icon: 'lucide:cpu' },
-	{ id: 'events', label: t('tab.events'), icon: 'lucide:list-tree' },
-	{ id: 'serial', label: t('tab.serial'), icon: 'lucide:radio' },
-	{ id: 'ai', label: t('tab.ai'), icon: 'lucide:bot' },
 	{ id: 'settings', label: t('tab.settings'), icon: 'lucide:settings' },
 ])
 </script>
 
 <template>
-	<nav
-		class="grid grid-cols-6 gap-2 border-t border-default px-3.5 pb-3.5 pt-2.5"
-	>
+	<nav class="grid h-16 grid-cols-3 items-center gap-2 px-4">
 		<UButton
 			v-for="tab in tabs"
 			:key="tab.id"
-			class="h-10 w-full min-w-0 gap-2"
+			class="h-10 w-full min-w-0 gap-2 justify-center"
 			:color="model === tab.id ? 'primary' : 'neutral'"
 			:variant="model === tab.id ? 'solid' : 'soft'"
 			type="button"

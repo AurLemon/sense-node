@@ -186,11 +186,11 @@
 		--background-dark-1: hsla(var(--color-dark), 0.28);
 		--background-dark-2: hsla(var(--color-dark), 0.54);
 
-		--color-text: hsl(var(--color-primary__h), 15%, 24%);
-		--color-text--emphasized: hsl(var(--color-primary__h), 65%, 8%);
-		--color-text--subtle: hsl(var(--color-primary__h), 14%, 35%);
-		--color-text--muted: hsl(var(--color-primary__h), 14%, 52%);
-		--color-text--disabled: hsl(var(--color-primary__h), 14%, 62%);
+		--color-text: hsl(var(--color-primary__h), 20%, 10%);
+		--color-text--emphasized: hsl(var(--color-primary__h), 70%, 3%);
+		--color-text--subtle: hsl(var(--color-primary__h), 20%, 18%);
+		--color-text--muted: hsl(var(--color-primary__h), 18%, 30%);
+		--color-text--disabled: hsl(var(--color-primary__h), 14%, 42%);
 
 		--color-success: var(--color-success-500);
 		--color-warning: var(--color-warning-500);
@@ -199,6 +199,12 @@
 		/* Nuxt UI 相关 token 覆盖 */
 		--ui-background: var(--color-surface-0);
 		--ui-foreground: var(--color-text);
+		--ui-text: var(--color-text);
+		--ui-text-highlighted: var(--color-text--emphasized);
+		--ui-text-toned: var(--color-text--subtle);
+		--ui-text-muted: var(--color-text--muted);
+		--ui-text-dimmed: var(--color-text--disabled);
+		--ui-text-inverted: var(--color-surface-0);
 		--ui-muted: var(--color-neutral-200);
 		--ui-accent: var(--color-surface-2);
 		--ui-border: var(--border-color-base);
@@ -330,14 +336,20 @@
 		--background-dark-1: hsla(var(--color-dark), 0.45);
 		--background-dark-2: hsla(var(--color-dark), 0.68);
 
-		--color-text: hsl(var(--color-primary__h), 28%, 92%);
-		--color-text--emphasized: hsl(var(--color-primary__h), 58%, 96%);
-		--color-text--subtle: hsl(var(--color-primary__h), 20%, 72%);
-		--color-text--muted: hsl(var(--color-primary__h), 18%, 60%);
-		--color-text--disabled: hsl(var(--color-primary__h), 15%, 48%);
+		--color-text: hsl(var(--color-primary__h), 24%, 98%);
+		--color-text--emphasized: hsl(var(--color-primary__h), 36%, 100%);
+		--color-text--subtle: hsl(var(--color-primary__h), 20%, 88%);
+		--color-text--muted: hsl(var(--color-primary__h), 18%, 80%);
+		--color-text--disabled: hsl(var(--color-primary__h), 14%, 66%);
 
 		--ui-muted: var(--color-neutral-800);
 		--ui-accent: var(--color-surface-1);
 		--ui-foreground: var(--color-text);
+		--ui-text: var(--color-text);
+		--ui-text-highlighted: var(--color-text--emphasized);
+		--ui-text-toned: var(--color-text--subtle);
+		--ui-text-muted: var(--color-text--muted);
+		--ui-text-dimmed: var(--color-text--disabled);
+		--ui-text-inverted: var(--color-surface-0);
 	}
 }

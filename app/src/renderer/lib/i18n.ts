@@ -28,6 +28,7 @@ const messages = {
 		'common.language': '语言',
 		'common.theme': '主题',
 		'common.close': '关闭',
+		'unit.count': '次',
 		'theme.dark': '深色',
 		'theme.light': '浅色',
 		'locale.zh': '中文',
@@ -69,6 +70,11 @@ const messages = {
 		'device.pending': '待处理',
 		'device.reason': '原因',
 		'device.notConnected': '设备未连接',
+		'chart.telemetry': '传感器曲线',
+		'chart.window5m': '最近 1 分钟窗口',
+		'chart.imu': 'IMU 六轴',
+		'chart.tof': 'ToF 距离',
+		'chart.waiting': '等待传感器数据',
 		'scene.tofMm': '距离',
 		'scene.confidence': '置信度',
 		'scene.lastTransition': '上次状态切换',
@@ -122,6 +128,7 @@ const messages = {
 		'common.language': 'Language',
 		'common.theme': 'Theme',
 		'common.close': 'Close',
+		'unit.count': 'times',
 		'theme.dark': 'Dark',
 		'theme.light': 'Light',
 		'locale.zh': 'Chinese',
@@ -163,6 +170,11 @@ const messages = {
 		'device.pending': 'Pending',
 		'device.reason': 'Reason',
 		'device.notConnected': 'Device not connected',
+		'chart.telemetry': 'Sensor curves',
+		'chart.window5m': 'Last 1 minute',
+		'chart.imu': 'IMU 6-axis',
+		'chart.tof': 'ToF distance',
+		'chart.waiting': 'Waiting for sensor data',
 		'scene.tofMm': 'TOF',
 		'scene.confidence': 'Confidence',
 		'scene.lastTransition': 'Last transition',
@@ -199,7 +211,9 @@ export function useI18n() {
 
 	function t(key: keyof (typeof messages)['zh-CN'] | string): string {
 		const bundle = messages[settings.locale] ?? messages['zh-CN']
-		return bundle[key] ?? messages['zh-CN'][key] ?? key
+		const currentBundle = bundle as Record<string, string>
+		const fallbackBundle = messages['zh-CN'] as Record<string, string>
+		return currentBundle[key] ?? fallbackBundle[key] ?? key
 	}
 
 	return {

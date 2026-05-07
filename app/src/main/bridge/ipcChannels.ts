@@ -8,7 +8,5 @@ export const ipcChannels = {
 	serialLine: 'sensenode:serial:line',
 	dataSourceStatus: 'sensenode:datasource:status',
 	appShowMainWindow: 'sensenode:app:show-main-window',
-	appShowHud: 'sensenode:app:show-hud',
-	appHideHud: 'sensenode:app:hide-hud',
 	appSetLocale: 'sensenode:app:set-locale',
 } as const

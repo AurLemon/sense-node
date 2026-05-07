@@ -1,103 +1,226 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { getTransportLabel, useI18n } from '../../lib/i18n'
+import { computed, ref, watch } from 'vue'
+import { useToast } from '@nuxt/ui/composables'
+import { useI18n } from '../../lib/i18n'
 import { useSerialStore } from '../../stores/serialStore'
 
 const serial = useSerialStore()
-const { t, locale } = useI18n()
+const { t } = useI18n()
+const toast = useToast()
+const settingsOpen = ref(false)
+const discardConfirmOpen = ref(false)
+const portsOpen = ref(false)
+const baudRateDraft = ref(serial.baudRate)
 
 const portItems = computed(() =>
 	serial.ports.map((port) => {
-		const transportLabel = getTransportLabel(locale.value, port.transport)
 		const parts = [port.manufacturer, port.friendlyName].filter(Boolean)
 
 		return {
 			value: port.path,
 			label: port.path,
 			description: parts.length > 0 ? parts.join(' · ') : t('serial.autoPick'),
-			chip: {
-				text: port.isLikelyDevice
-					? `${transportLabel} · ${t('serial.likely')}`
-					: transportLabel,
-				color: 'neutral',
-				size: 'sm',
-			},
 		}
 	}),
 )
 
-const stateLabel = computed(() => t(`serial.status.${serial.status.state}`))
-const selectedLabel = computed(
-	() =>
-		serial.ports.find((port) => port.path === serial.selectedPort)?.path ??
-		serial.selectedPort ??
-		t('common.none'),
+const isBusy = computed(() =>
+	['scanning', 'connecting', 'disconnecting', 'reconnecting'].includes(
+		serial.status.state,
+	),
 )
-const baudRate = computed({
-	get: () => serial.baudRate,
-	set: (value: number | string) => {
-		serial.baudRate = Number(value)
+
+const isConnected = computed(() => serial.status.state === 'connected')
+const selectedPortModel = computed(() =>
+	isConnected.value ? (serial.status.selectedPort ?? serial.selectedPort) : '',
+)
+const connectionActionLabel = computed(() =>
+	isConnected.value ? t('common.reconnect') : t('common.connect'),
+)
+const hasUnsavedSettings = computed(
+	() => Number(baudRateDraft.value) !== serial.baudRate,
+)
+
+const modalOpen = computed({
+	get: () => settingsOpen.value,
+	set: (open) => {
+		if (!open && hasUnsavedSettings.value) {
+			discardConfirmOpen.value = true
+			return
+		}
+		settingsOpen.value = open
 	},
 })
 
-async function refresh(): Promise<void> {
-	await serial.refreshPorts()
+watch(settingsOpen, (open) => {
+	if (open) {
+		baudRateDraft.value = serial.baudRate
+	}
+})
+
+watch(portsOpen, (open) => {
+	if (open) {
+		void serial.refreshPorts()
+	}
+})
+
+async function selectAndConnect(portPath: string): Promise<void> {
+	const connected = await serial.connectAndValidate(portPath)
+	if (!connected) {
+		showConnectFailedToast()
+	}
 }
 
 async function connect(): Promise<void> {
-	await serial.connect()
+	const connected = await serial.connectAndValidate()
+	if (!connected) {
+		showConnectFailedToast()
+	}
 }
 
 async function disconnect(): Promise<void> {
 	await serial.disconnect()
 }
+
+function saveSettings(): void {
+	serial.baudRate = Number(baudRateDraft.value)
+	settingsOpen.value = false
+}
+
+function discardSettings(): void {
+	baudRateDraft.value = serial.baudRate
+	discardConfirmOpen.value = false
+	settingsOpen.value = false
+}
+
+function showConnectFailedToast(): void {
+	toast.add({
+		title: t('serial.connectFailed'),
+		description: t('serial.connectFailedDescription'),
+		icon: 'i-lucide-circle-alert',
+		color: 'warning',
+	})
+}
 </script>
 
 <template>
-	<div
-		class="grid grid-cols-[minmax(0,1fr)_140px_auto] gap-2.5 rounded-lg border border-default bg-default/75 p-3 shadow-sm backdrop-blur"
-	>
-		<div class="grid min-w-0 gap-2">
-			<div class="flex items-center justify-between gap-2.5">
-				<label class="text-xs text-muted">{{ t('serial.device') }}</label>
-				<UBadge
-					color="neutral"
-					variant="soft"
-					class="font-['JetBrains_Mono','MiSans',monospace] text-xs text-muted"
-				>
-					{{ stateLabel }}
-				</UBadge>
-			</div>
+	<div class="flex items-center justify-between gap-3">
+		<div class="flex min-w-0 items-center gap-1.5">
 			<USelectMenu
-				v-model="serial.selectedPort"
+				v-model:open="portsOpen"
+				:model-value="selectedPortModel"
 				:items="portItems"
 				value-key="value"
 				label-key="label"
 				description-key="description"
 				:placeholder="t('serial.selectPort')"
+				:search-input="{
+					placeholder: t('serial.searchPort'),
+					icon: 'i-lucide-search',
+				}"
+				class="w-48 min-w-0"
+				:disabled="isBusy"
+				@update:model-value="selectAndConnect"
 			/>
-			<div
-				class="overflow-hidden text-ellipsis whitespace-nowrap font-['JetBrains_Mono','MiSans',monospace] text-xs text-muted"
+			<UTooltip :text="connectionActionLabel">
+				<UButton
+					icon="i-lucide-plug-zap"
+					color="neutral"
+					variant="ghost"
+					size="sm"
+					type="button"
+					:aria-label="connectionActionLabel"
+					:disabled="!serial.selectedPort || isBusy"
+					:loading="serial.status.state === 'connecting'"
+					@click="connect"
+				/>
+			</UTooltip>
+			<UTooltip :text="t('common.disconnect')">
+				<UButton
+					icon="i-lucide-unplug"
+					color="neutral"
+					variant="ghost"
+					size="sm"
+					type="button"
+					:aria-label="t('common.disconnect')"
+					:disabled="!isConnected || isBusy"
+					@click="disconnect"
+				/>
+			</UTooltip>
+		</div>
+
+		<div class="flex items-center">
+			<UModal
+				v-model:open="modalOpen"
+				:title="t('serial.connectionSettings')"
+				:ui="{ content: 'max-w-sm', footer: 'justify-end' }"
 			>
-				{{ t('serial.hint') }} · {{ t('common.selected') }}: {{ selectedLabel }}
-			</div>
-		</div>
+				<UTooltip :text="t('common.settings')">
+					<UButton
+						icon="i-lucide-settings"
+						color="neutral"
+						variant="ghost"
+						size="sm"
+						type="button"
+						:aria-label="t('common.settings')"
+					/>
+				</UTooltip>
 
-		<div class="grid content-start gap-2">
-			<label class="text-xs text-muted">{{ t('serial.baudRate') }}</label>
-			<UInput v-model="baudRate" type="number" :min="9600" />
-		</div>
+				<template #body>
+					<div class="grid gap-3">
+						<UFormField :label="t('serial.baudRate')">
+							<UInput
+								v-model="baudRateDraft"
+								type="number"
+								:min="9600"
+								class="w-full"
+							/>
+						</UFormField>
+					</div>
+				</template>
 
-		<div class="grid auto-cols-max grid-flow-col content-start gap-2">
-			<UButton color="neutral" variant="soft" type="button" @click="refresh">
-				{{ t('common.refresh') }}
-			</UButton>
-			<UButton color="primary" variant="solid" type="button" @click="connect">
-				{{ t('common.connect') }}
-			</UButton>
-			<UButton color="neutral" variant="soft" type="button" @click="disconnect">
-				{{ t('common.disconnect') }}
-			</UButton>
+				<template #footer>
+					<UButton
+						color="primary"
+						variant="solid"
+						type="button"
+						@click="saveSettings"
+					>
+						{{ t('common.save') }}
+					</UButton>
+				</template>
+			</UModal>
+
+			<UModal
+				v-model:open="discardConfirmOpen"
+				:title="t('serial.unsavedSettingsTitle')"
+				:ui="{ content: 'max-w-sm', footer: 'justify-end' }"
+			>
+				<template #body>
+					<p class="text-sm text-muted">
+						{{ t('serial.unsavedSettingsDescription') }}
+					</p>
+				</template>
+
+				<template #footer>
+					<UButton
+						color="neutral"
+						variant="ghost"
+						type="button"
+						@click="discardConfirmOpen = false"
+					>
+						{{ t('common.cancel') }}
+					</UButton>
+					<UButton
+						color="primary"
+						variant="solid"
+						type="button"
+						@click="discardSettings"
+					>
+						{{ t('common.discard') }}
+					</UButton>
+				</template>
+			</UModal>
 		</div>
 	</div>
 </template>

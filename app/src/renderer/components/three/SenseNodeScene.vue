@@ -1,16 +1,20 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as THREE from 'three'
-import MetricGrid from '../panels/MetricGrid.vue'
 import { useI18n } from '../../lib/i18n'
 import { useDeviceStore } from '../../stores/deviceStore'
+import { useSerialStore } from '../../stores/serialStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import type { SenseNodeFrame } from '../../../shared/types/sensenode'
 
 const canvasHost = ref<HTMLDivElement | null>(null)
 const device = useDeviceStore()
+const serial = useSerialStore()
 const settings = useSettingsStore()
 const { t } = useI18n()
+const metricsPanel = ref<HTMLDivElement | null>(null)
+const metricsContent = ref<HTMLDivElement | null>(null)
+const metricsWidth = ref('0px')
 
 let renderer: THREE.WebGLRenderer | null = null
 let scene: THREE.Scene | null = null
@@ -25,24 +29,26 @@ let markerMaterials: THREE.MeshStandardMaterial[] = []
 let resizeObserver: ResizeObserver | null = null
 let animationId = 0
 let targetRotation = new THREE.Euler(0, 0, 0)
-const fixedCameraPosition = new THREE.Vector3(0.02, 1.05, 5.15)
+const fixedCameraPosition = new THREE.Vector3(0.02, 1.12, 6.35)
 const fixedCameraTarget = new THREE.Vector3(0.04, 0.1, 0)
 
-const metrics = computed(() => [
-	{
-		label: t('device.stableEvent'),
-		value: device.currentFrame ? device.stableEvent : null,
+const accelText = computed(() => formatVec3(device.currentFrame?.accel))
+const gyroText = computed(() => formatVec3(device.currentFrame?.gyro))
+
+watch(
+	[accelText, gyroText],
+	() => {
+		queueMetricsWidthUpdate()
 	},
-	{
-		label: t('device.rawEvent'),
-		value: device.currentFrame ? device.rawEvent : null,
+	{ immediate: true },
+)
+
+watch(
+	() => serial.status.state,
+	() => {
+		queueMetricsWidthUpdate()
 	},
-	{ label: t('scene.tofMm'), value: device.currentFrame?.tof_mm },
-	{
-		label: t('scene.confidence'),
-		value: device.currentFrame?.confidence?.toFixed(2),
-	},
-])
+)
 
 onMounted(() => {
 	if (!canvasHost.value) return
@@ -76,6 +82,8 @@ onMounted(() => {
 	window.addEventListener('resize', resize)
 	resize()
 	animate()
+
+	queueMetricsWidthUpdate()
 })
 
 watch(
@@ -98,6 +106,18 @@ onBeforeUnmount(() => {
 	renderer?.dispose()
 })
 
+async function queueMetricsWidthUpdate(): Promise<void> {
+	await nextTick()
+	updateMetricsWidth()
+}
+
+function updateMetricsWidth(): void {
+	if (!metricsPanel.value || !metricsContent.value) return
+
+	const width = Math.ceil(metricsContent.value.scrollWidth)
+	metricsWidth.value = `${width}px`
+}
+
 function animate(): void {
 	animationId = requestAnimationFrame(animate)
 	if (!renderer || !scene || !camera || !node) return
@@ -117,7 +137,7 @@ function animate(): void {
 		targetRotation.z,
 		0.24,
 	)
-	node.scale.setScalar(1)
+	node.scale.setScalar(0.78)
 	camera.position.copy(fixedCameraPosition)
 	camera.lookAt(fixedCameraTarget)
 	renderer.render(scene, camera)
@@ -213,6 +233,16 @@ function vectorMag(value?: { x: number; y: number; z: number }): number {
 	return Math.sqrt(value.x * value.x + value.y * value.y + value.z * value.z)
 }
 
+function formatVec3(value?: { x: number; y: number; z: number }): string {
+	if (serial.status.state !== 'connected' || !value) {
+		return '- / - / -'
+	}
+
+	return [value.x, value.y, value.z]
+		.map((component) => component.toFixed(2))
+		.join(' / ')
+}
+
 function clampAngle(value: number): number {
 	return THREE.MathUtils.clamp(value, -Math.PI * 0.7, Math.PI * 0.7)
 }
@@ -281,36 +311,29 @@ function setBoardTheme(
 </script>
 
 <template>
-	<div class="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto_auto] gap-3">
+	<div class="relative h-full w-full overflow-hidden">
+		<div ref="canvasHost" class="h-full w-full" />
 		<div
-			ref="canvasHost"
-			class="grid h-full min-h-0 place-items-center overflow-hidden rounded-lg border border-default bg-default/75 shadow-sm backdrop-blur"
-		/>
-		<div
-			v-if="!device.currentFrame"
-			class="rounded-lg border border-default bg-default/75 p-2.5 text-muted shadow-sm backdrop-blur"
+			ref="metricsPanel"
+			class="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2 overflow-hidden text-xs text-muted"
+			:style="{
+				width: metricsWidth,
+				transition: 'width 180ms ease-in-out',
+			}"
 		>
-			{{ t('device.notConnected') }}
-		</div>
-		<MetricGrid :items="metrics" />
-		<div
-			class="flex gap-4 rounded-lg border border-default bg-default/75 p-2.5 font-['JetBrains_Mono','MiSans',monospace] text-xs text-muted shadow-sm backdrop-blur"
-		>
-			<span
-				>{{ t('device.stabilizerState') }}:
-				{{ device.stabilizerSnapshot.state }}</span
+			<div
+				ref="metricsContent"
+				class="inline-flex flex-nowrap items-start justify-center gap-4 whitespace-nowrap"
 			>
-			<span>{{
-				device.currentFrame ? device.stabilizerSnapshot.reason : '-'
-			}}</span>
-			<span
-				>{{ t('scene.lastTransition') }}
-				{{
-					new Date(
-						device.stabilizerSnapshot.lastTransitionAt,
-					).toLocaleTimeString()
-				}}</span
-			>
+				<div class="grid shrink-0 grid-cols-[auto_auto] gap-2">
+					<span class="font-medium text-highlighted">A</span>
+					<span class="tabular-nums">{{ accelText }}</span>
+				</div>
+				<div class="grid shrink-0 grid-cols-[auto_auto] gap-2">
+					<span class="font-medium text-highlighted">G</span>
+					<span class="tabular-nums">{{ gyroText }}</span>
+				</div>
+			</div>
 		</div>
 	</div>
 </template>

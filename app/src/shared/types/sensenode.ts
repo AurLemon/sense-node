@@ -110,15 +110,6 @@ export interface SerialLineEntry {
 	message?: string
 }
 
-export type LlmProvider = 'none' | 'ollama' | 'openai-compatible'
-
-export interface LlmConfig {
-	provider: LlmProvider
-	endpoint?: string
-	model?: string
-	apiKey?: string
-}
-
 export interface SenseNodeDataSource {
 	type: DataSourceType
 	connect(): Promise<void>

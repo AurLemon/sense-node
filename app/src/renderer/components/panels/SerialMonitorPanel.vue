@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import SerialConnectionBar from '../controls/SerialConnectionBar.vue'
 import { useI18n } from '../../lib/i18n'
 import { useSerialStore } from '../../stores/serialStore'
 
@@ -8,19 +7,15 @@ const { t } = useI18n()
 </script>
 
 <template>
-	<div class="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-3">
-		<SerialConnectionBar />
-
-		<div
-			class="h-full overflow-hidden rounded-lg border border-default bg-default/75 p-3 font-['JetBrains_Mono','MiSans',monospace] text-[12px] shadow-sm backdrop-blur"
-		>
+	<div class="h-full min-h-0">
+		<div class="flex h-full min-h-0 flex-col overflow-hidden text-[12px]">
 			<div class="mb-2 flex items-center justify-between gap-3 text-muted">
 				<span>{{ t(`serial.status.${serial.status.state}`) }}</span>
 				<UBadge color="neutral" variant="soft">
 					{{ serial.status.selectedPort ?? serial.selectedPort ?? '-' }}
 				</UBadge>
 			</div>
-			<UScrollArea class="h-full">
+			<UScrollArea class="min-h-0 flex-1">
 				<div
 					v-for="line in serial.lines"
 					:key="line.id"

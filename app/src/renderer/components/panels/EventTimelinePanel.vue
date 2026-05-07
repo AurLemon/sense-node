@@ -4,18 +4,18 @@ import { useDeviceStore } from '../../stores/deviceStore'
 
 const device = useDeviceStore()
 const { t } = useI18n()
+
+function formatTofValue(value?: number): string {
+	if (value === undefined || value < 0 || value === 8191) {
+		return '-'
+	}
+
+	return String(value)
+}
 </script>
 
 <template>
-	<div
-		class="flex h-full flex-col overflow-hidden rounded-lg border border-default bg-default/75 shadow-sm backdrop-blur"
-	>
-		<div class="flex items-center justify-between gap-3 px-3 pt-3">
-			<span>{{ t('tab.events') }}</span>
-			<UBadge color="neutral" variant="soft">
-				{{ device.events.length }}
-			</UBadge>
-		</div>
+	<div class="flex h-full min-h-0 flex-col overflow-hidden">
 		<UScrollArea class="min-h-0 flex-1">
 			<table class="w-full border-collapse text-[13px]">
 				<thead>
@@ -54,9 +54,7 @@ const { t } = useI18n()
 				</thead>
 				<tbody>
 					<tr v-for="event in device.events" :key="event.id">
-						<td
-							class="border-b border-default px-2.5 py-2.5 font-['JetBrains_Mono','MiSans',monospace]"
-						>
+						<td class="border-b border-default px-2.5 py-2.5">
 							{{ new Date(event.timestamp).toLocaleTimeString() }}
 						</td>
 						<td class="border-b border-default px-2.5 py-2.5">
@@ -68,15 +66,11 @@ const { t } = useI18n()
 						<td class="border-b border-default px-2.5 py-2.5">
 							{{ event.stableEvent }}
 						</td>
-						<td
-							class="border-b border-default px-2.5 py-2.5 font-['JetBrains_Mono','MiSans',monospace]"
-						>
+						<td class="border-b border-default px-2.5 py-2.5">
 							{{ event.confidence?.toFixed(2) ?? '-' }}
 						</td>
-						<td
-							class="border-b border-default px-2.5 py-2.5 font-['JetBrains_Mono','MiSans',monospace]"
-						>
-							{{ event.tofMm ?? '-' }}
+						<td class="border-b border-default px-2.5 py-2.5">
+							{{ formatTofValue(event.tofMm) }}
 						</td>
 					</tr>
 				</tbody>

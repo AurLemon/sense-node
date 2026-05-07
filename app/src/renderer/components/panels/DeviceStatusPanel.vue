@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import SerialConnectionBar from '../controls/SerialConnectionBar.vue'
+import DeviceTelemetryChart from './DeviceTelemetryChart.vue'
+import EventTimelinePanel from './EventTimelinePanel.vue'
 import MetricGrid from './MetricGrid.vue'
+import SerialMonitorPanel from './SerialMonitorPanel.vue'
 import { useI18n } from '../../lib/i18n'
 import { useDeviceStore } from '../../stores/deviceStore'
 import { useSerialStore } from '../../stores/serialStore'
@@ -9,63 +12,177 @@ import { useSerialStore } from '../../stores/serialStore'
 const device = useDeviceStore()
 const serial = useSerialStore()
 const { t } = useI18n()
+const isConnected = computed(() => serial.status.state === 'connected')
+const eventModalUi = {
+	overlay: 'fixed inset-0 z-[80] bg-default/65 backdrop-blur-sm',
+	content: 'z-[90] max-w-5xl max-h-[calc(100dvh-8rem)] overflow-hidden',
+	body: 'h-[min(62vh,calc(100dvh-13rem))] min-h-0',
+}
+const serialModalUi = {
+	overlay: 'fixed inset-0 z-[80] bg-default/65 backdrop-blur-sm',
+	content: 'z-[90] max-w-4xl max-h-[calc(100dvh-8rem)] overflow-hidden',
+	body: 'h-[min(62vh,calc(100dvh-13rem))] min-h-0',
+}
+
+function connectedValue(
+	value: string | number | null | undefined,
+): string | number | null | undefined {
+	return isConnected.value ? value : null
+}
+
+function withUnit(
+	value: string | number | null | undefined,
+	unit: string,
+): string | null {
+	if (
+		!isConnected.value ||
+		value === null ||
+		value === undefined ||
+		value === ''
+	) {
+		return null
+	}
+
+	return `${value} ${unit}`
+}
 
 const metrics = computed(() => [
 	{
 		label: t('device.serial'),
-		value: t(`serial.status.${serial.status.state}`),
+		value: connectedValue(t(`serial.status.${serial.status.state}`)),
+		icon: 'lucide:plug-zap',
 	},
 	{
 		label: t('device.selectedPort'),
-		value: serial.status.selectedPort ?? serial.selectedPort,
+		value: connectedValue(serial.status.selectedPort ?? serial.selectedPort),
+		icon: 'lucide:usb',
 	},
-	{ label: t('device.baudRate'), value: serial.baudRate },
-	{ label: t('device.fps'), value: serial.status.fps },
-	{ label: t('device.inferenceMs'), value: device.currentFrame?.inference_ms },
-	{ label: t('device.freeHeap'), value: device.currentFrame?.free_heap },
-	{ label: t('device.uptimeMs'), value: device.currentFrame?.uptime_ms },
-	{ label: t('device.parseErrors'), value: serial.status.parseErrorCount },
-	{ label: t('device.reconnects'), value: serial.status.reconnectCount },
-	{ label: t('device.source'), value: device.source },
+	{
+		label: t('device.baudRate'),
+		value: withUnit(serial.baudRate, 'bps'),
+		icon: 'lucide:gauge',
+	},
+	{
+		label: t('device.fps'),
+		value: withUnit(serial.status.fps, 'FPS'),
+		icon: 'lucide:timer',
+	},
+	{
+		label: t('device.inferenceMs'),
+		value: withUnit(device.currentFrame?.inference_ms, 'ms'),
+		icon: 'lucide:zap',
+	},
+	{
+		label: t('device.freeHeap'),
+		value: withUnit(device.currentFrame?.free_heap, 'B'),
+		icon: 'lucide:memory-stick',
+	},
+	{
+		label: t('device.uptimeMs'),
+		value: withUnit(device.currentFrame?.uptime_ms, 'ms'),
+		icon: 'lucide:clock-3',
+	},
+	{
+		label: t('device.parseErrors'),
+		value: withUnit(serial.status.parseErrorCount, t('unit.count')),
+		icon: 'lucide:circle-alert',
+	},
+	{
+		label: t('device.reconnects'),
+		value: withUnit(serial.status.reconnectCount, t('unit.count')),
+		icon: 'lucide:refresh-cw',
+	},
+	{
+		label: t('device.source'),
+		value: connectedValue(device.source),
+		icon: 'lucide:database',
+	},
 	{
 		label: t('device.rawEvent'),
-		value: device.currentFrame ? device.rawEvent : null,
+		value: connectedValue(device.currentFrame ? device.rawEvent : null),
+		icon: 'lucide:audio-lines',
 	},
 	{
 		label: t('device.stableEvent'),
-		value: device.currentFrame ? device.stableEvent : null,
+		value: connectedValue(device.currentFrame ? device.stableEvent : null),
+		icon: 'lucide:badge-check',
+	},
+	{
+		label: t('device.stabilizerState'),
+		value: connectedValue(device.stabilizerSnapshot.state),
+		icon: 'lucide:shield-check',
+	},
+	{
+		label: t('device.pending'),
+		value: connectedValue(
+			device.currentFrame
+				? (device.stabilizerSnapshot.pendingEvent ?? '-')
+				: '-',
+		),
+		icon: 'lucide:loader-circle',
+	},
+	{
+		label: t('device.reason'),
+		value: connectedValue(
+			device.currentFrame ? device.stabilizerSnapshot.reason : '-',
+		),
+		icon: 'lucide:file-search',
 	},
 ])
 </script>
 
 <template>
 	<div class="grid gap-3">
-		<SerialConnectionBar />
-		<div
-			v-if="!device.currentFrame"
-			class="rounded-lg border border-default bg-default/75 p-3 text-muted shadow-sm backdrop-blur"
-		>
-			{{ t('device.notConnected') }}
+		<div class="flex items-center justify-between gap-3">
+			<div class="min-w-0 flex-1">
+				<SerialConnectionBar />
+			</div>
+			<div class="flex items-center gap-1.5">
+				<UModal
+					:title="t('tab.events')"
+					:overlay="true"
+					:portal="true"
+					:ui="eventModalUi"
+				>
+					<UTooltip :text="t('tab.events')">
+						<UButton
+							icon="i-lucide-list-tree"
+							color="neutral"
+							variant="ghost"
+							size="sm"
+							type="button"
+							:aria-label="t('tab.events')"
+						/>
+					</UTooltip>
+
+					<template #body>
+						<EventTimelinePanel />
+					</template>
+				</UModal>
+				<UModal
+					:title="t('tab.serial')"
+					:overlay="true"
+					:portal="true"
+					:ui="serialModalUi"
+				>
+					<UTooltip :text="t('tab.serial')">
+						<UButton
+							icon="i-lucide-radio"
+							color="neutral"
+							variant="ghost"
+							size="sm"
+							type="button"
+							:aria-label="t('tab.serial')"
+						/>
+					</UTooltip>
+
+					<template #body>
+						<SerialMonitorPanel />
+					</template>
+				</UModal>
+			</div>
 		</div>
-		<MetricGrid :items="metrics" />
-		<div
-			class="rounded-lg border border-default bg-default/75 p-3 leading-8 text-highlighted shadow-sm backdrop-blur"
-		>
-			<div>
-				{{ t('device.stabilizerState') }}: {{ device.stabilizerSnapshot.state }}
-			</div>
-			<div>
-				{{ t('device.pending') }}:
-				{{
-					device.currentFrame
-						? (device.stabilizerSnapshot.pendingEvent ?? '-')
-						: '-'
-				}}
-			</div>
-			<div>
-				{{ t('device.reason') }}:
-				{{ device.currentFrame ? device.stabilizerSnapshot.reason : '-' }}
-			</div>
-		</div>
+		<DeviceTelemetryChart />
+		<MetricGrid :items="metrics" :columns="2" />
 	</div>
 </template>

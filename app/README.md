@@ -69,9 +69,9 @@ The firmware Demo mode emits one JSON object per line.
 
 The renderer keeps raw event data visible and applies a UI-only stabilizer for `stableEvent`.
 
-## HUD And Tray
+## Tray
 
 - Closing the main window hides it to tray.
-- Minimizing shows the Mini HUD.
-- The tray menu can show the main window, show/hide HUD, pause/resume serial, or quit.
+- Minimizing keeps the window hidden to tray.
+- The tray menu can show the main window, pause/resume serial, or quit.
 - Only tray `Quit` exits the app.

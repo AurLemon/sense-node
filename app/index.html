@@ -7,9 +7,143 @@
 			content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';"
 		/>
 		<title>SenseNode</title>
+		<style>
+			@font-face {
+				font-family: 'Rubik';
+				src: url('../assets/fonts/Rubik_VF.ttf') format('truetype');
+				font-style: normal;
+				font-weight: 300 900;
+				font-display: swap;
+			}
+
+			@font-face {
+				font-family: 'Rubik';
+				src: url('../assets/fonts/Rubik_Italic_VF.ttf') format('truetype');
+				font-style: italic;
+				font-weight: 300 900;
+				font-display: swap;
+			}
+
+			@font-face {
+				font-family: 'MiSans';
+				src: url('../assets/fonts/MiSans_VF.ttf') format('truetype');
+				font-style: normal;
+				font-weight: 200 900;
+				font-display: swap;
+			}
+
+			@font-face {
+				font-family: 'Literata';
+				src: url('../assets/fonts/Literata_VF.ttf') format('truetype');
+				font-style: normal;
+				font-weight: 200 900;
+				font-display: swap;
+			}
+
+			@font-face {
+				font-family: 'Literata';
+				src: url('../assets/fonts/Literata_Italic_VF.ttf') format('truetype');
+				font-style: italic;
+				font-weight: 200 900;
+				font-display: swap;
+			}
+
+			@font-face {
+				font-family: 'Noto Serif SC';
+				src: url('../assets/fonts/NotoSerif_SC_VF.ttf') format('truetype');
+				font-style: normal;
+				font-weight: 200 900;
+				font-display: swap;
+			}
+
+			@font-face {
+				font-family: 'JetBrains Mono';
+				src: url('../assets/fonts/JetBrains_Mono.woff2') format('woff2');
+				font-style: normal;
+				font-weight: 100 800;
+				font-display: swap;
+			}
+
+			@font-face {
+				font-family: 'Inter';
+				src: url('../assets/fonts/Inter_VF.ttf') format('truetype');
+				font-style: normal;
+				font-weight: 100 900;
+				font-display: swap;
+			}
+
+			@font-face {
+				font-family: 'Inter';
+				src: url('../assets/fonts/Inter_Italic_VF.ttf') format('truetype');
+				font-style: italic;
+				font-weight: 100 900;
+				font-display: swap;
+			}
+
+			:root {
+				color-scheme: light;
+				background: #fafafa;
+			}
+
+			html,
+			body,
+			#app {
+				width: 100%;
+				height: 100%;
+				margin: 0;
+				background: #fafafa;
+			}
+
+			.boot-screen {
+				display: grid;
+				width: 100%;
+				height: 100%;
+				place-items: center;
+				color: #18181b;
+				font-family:
+					'Rubik',
+					'MiSans',
+					system-ui,
+					-apple-system,
+					BlinkMacSystemFont,
+					'Segoe UI',
+					sans-serif;
+			}
+
+			.boot-brand {
+				display: inline-flex;
+				align-items: center;
+				gap: 10px;
+				font-size: 22px;
+				font-weight: 700;
+				letter-spacing: 0;
+			}
+
+			.boot-spinner {
+				width: 18px;
+				height: 18px;
+				border: 2px solid #d4d4d8;
+				border-top-color: #0ea5e9;
+				border-radius: 999px;
+				animation: boot-spin 0.8s linear infinite;
+			}
+
+			@keyframes boot-spin {
+				to {
+					transform: rotate(360deg);
+				}
+			}
+		</style>
 	</head>
 	<body>
-		<div id="app"></div>
+		<div id="app">
+			<div class="boot-screen">
+				<div class="boot-brand">
+					<span class="boot-spinner" aria-hidden="true"></span>
+					<span>SenseNode</span>
+				</div>
+			</div>
+		</div>
 		<script type="module" src="/src/renderer.ts"></script>
 	</body>
 </html>

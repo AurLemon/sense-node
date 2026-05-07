@@ -54,7 +54,11 @@ export async function listSerialPorts(): Promise<SerialPortInfo[]> {
 			)
 			const isUsb =
 				!isBluetooth && usbPatterns.some((pattern) => pattern.test(haystack))
-			const transport = isBluetooth ? 'bluetooth' : isUsb ? 'usb' : 'other'
+			const transport: SerialPortInfo['transport'] = isBluetooth
+				? 'bluetooth'
+				: isUsb
+					? 'usb'
+					: 'other'
 
 			return {
 				path: port.path,

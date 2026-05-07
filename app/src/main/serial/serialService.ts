@@ -23,6 +23,7 @@ export class SerialService extends EventEmitter {
 	private fps = 0
 	private paused = false
 	private manuallyDisconnected = false
+	private intentionallyClosingPorts = new WeakSet<SerialPort>()
 
 	getStatus(
 		state: DataSourceStatus['state'],
@@ -48,23 +49,24 @@ export class SerialService extends EventEmitter {
 		this.manuallyDisconnected = false
 		this.emit('status', this.getStatus('connecting'))
 
-		this.port = new SerialPortStream({
+		const nextPort = new SerialPortStream({
 			binding: SerialPortBinding,
 			path,
 			baudRate,
 			autoOpen: false,
 		})
-		const parser = this.port.pipe(new ReadlineParser({ delimiter: '\n' }))
+		this.port = nextPort
+		const parser = nextPort.pipe(new ReadlineParser({ delimiter: '\n' }))
 
 		parser.on('data', (line: string) => this.handleLine(line))
-		this.port.on('close', () => this.handleClose())
-		this.port.on('error', (error) => {
+		nextPort.on('close', () => this.handleClose(nextPort))
+		nextPort.on('error', (error) => {
 			this.emitLine('error', '', error.message)
 			this.emit('status', this.getStatus('error', error.message))
 		})
 
 		await new Promise<void>((resolve, reject) => {
-			this.port?.open((error) => {
+			nextPort.open((error) => {
 				if (error) {
 					reject(error)
 					return
@@ -89,6 +91,7 @@ export class SerialService extends EventEmitter {
 			return
 		}
 
+		this.intentionallyClosingPorts.add(currentPort)
 		this.emit('status', this.getStatus('disconnecting'))
 		await new Promise<void>((resolve) => {
 			currentPort.close(() => resolve())
@@ -133,11 +136,23 @@ export class SerialService extends EventEmitter {
 		}
 	}
 
-	private handleClose(): void {
+	private handleClose(closedPort: SerialPort): void {
+		if (this.intentionallyClosingPorts.has(closedPort)) {
+			this.intentionallyClosingPorts.delete(closedPort)
+			return
+		}
+		if (closedPort !== this.port) {
+			return
+		}
+		this.port = null
 		if (this.manuallyDisconnected) {
 			return
 		}
-		this.emit('status', this.getStatus('disconnected', 'serial port closed'))
+		this.scheduleReconnect('serial port closed')
+	}
+
+	private scheduleReconnect(message: string): void {
+		this.emit('status', this.getStatus('disconnected', message))
 		if (!this.selectedPort) {
 			return
 		}
@@ -152,7 +167,9 @@ export class SerialService extends EventEmitter {
 						'',
 						error instanceof Error ? error.message : String(error),
 					)
-					this.handleClose()
+					this.scheduleReconnect(
+						error instanceof Error ? error.message : String(error),
+					)
 				})
 			}
 		}, 1500)

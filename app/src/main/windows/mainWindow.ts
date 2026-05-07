@@ -4,11 +4,11 @@ import { getAppIcon } from './appIcon'
 
 export function createMainWindow(): BrowserWindow {
 	const window = new BrowserWindow({
-		width: 1180,
-		height: 760,
-		minWidth: 960,
-		minHeight: 640,
-		backgroundColor: '#080A0F',
+		width: 500,
+		height: 700,
+		minWidth: 500,
+		minHeight: 700,
+		backgroundColor: '#FAFAFA',
 		icon: getAppIcon(),
 		title: 'SenseNode',
 		webPreferences: {
