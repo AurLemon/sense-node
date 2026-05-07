@@ -25,6 +25,7 @@ void AppController::setup()
   demoMode.begin(eventBus, hardware);
   captureMode.begin(eventBus, hardware);
   eventBus.emitModeChanged({currentMode, currentMode});
+  hardware.beginStartupSequence();
 
   previousFrame = latestFrame;
   latestFrame = hardware.readSensors();
@@ -36,6 +37,7 @@ void AppController::setup()
   lastSampleMs = millis();
   lastDemoSerialMs = millis();
   lastCaptureRenderMs = millis();
+  startupDisplayWasActive = hardware.isStartupSequenceActive(millis());
 }
 
 void AppController::loop()
@@ -47,6 +49,7 @@ void AppController::loop()
   }
 
   const unsigned long now = millis();
+  hardware.pollSerialControl();
   if (now - lastSampleMs >= kSampleIntervalMs)
   {
     lastSampleMs = now;
@@ -59,6 +62,32 @@ void AppController::loop()
       eventBus.emitDemoSerialTick(
           {latestFrame, imuInferenceService.getLatestEvent(), tofHandStateService.getLatestEvent(),
            fusionStateMachineService.getLatestEvent()});
+    }
+  }
+
+  if (hardware.isStartupSequenceActive(now))
+  {
+    startupDisplayWasActive = true;
+    if (hardware.shouldShowHandshakeAnimation())
+    {
+      hardware.renderHandshakeAnimation(now);
+    }
+    else
+    {
+      hardware.renderStartupSequence(now);
+    }
+    hardware.updateUserLed(currentMode);
+    delay(1);
+    return;
+  }
+
+  if (startupDisplayWasActive)
+  {
+    startupDisplayWasActive = false;
+    eventBus.emitSensorFrameSampled({latestFrame, previousFrame, currentMode});
+    if (currentMode == AppMode::Demo)
+    {
+      eventBus.emitFusionDecision(fusionStateMachineService.getLatestEvent());
     }
   }
 

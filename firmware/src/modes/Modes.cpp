@@ -3,6 +3,8 @@
 #include <esp_heap_caps.h>
 #include <esp_system.h>
 
+#include "display/ExpressionScheme.h"
+
 void DemoMode::begin(EventBus &eventBus, Hardware &targetHardware)
 {
   hardware = &targetHardware;
@@ -203,6 +205,13 @@ void DemoMode::printDemoJsonLine(const DemoSerialTickEvent &event)
   Serial.print(toString(event.fusion.fusionState));
   Serial.print("\",\"final_event\":\"");
   Serial.print(event.fusion.ready ? toString(event.fusion.finalEvent) : "warming_up");
+  Serial.print("\",\"display_face\":\"");
+  const char *displayFace =
+      event.fusion.ready ? resolveRuntimeExpressionFace(event.fusion.finalEvent, millis()) : nullptr;
+  if (displayFace != nullptr)
+  {
+    Serial.print(displayFace);
+  }
   Serial.print("\",\"acc_mag\":");
   Serial.print(event.imu.accMag, 4);
   Serial.print(",\"acc_delta\":");

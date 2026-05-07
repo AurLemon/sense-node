@@ -59,6 +59,7 @@ export interface SenseNodeFrame {
 	motion_event?: string
 	fusion_state?: string
 	final_event?: string
+	display_face?: string
 	inference_ms?: number
 	free_heap?: number
 	uptime_ms?: number

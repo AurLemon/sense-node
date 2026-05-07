@@ -46,13 +46,13 @@ const tabComponent = computed(() => {
 const tabSectionClass = computed(() =>
 	activeTab.value === 'scene'
 		? 'absolute inset-0 z-0'
-		: 'absolute inset-x-0 top-12 bottom-16 z-0 overflow-hidden',
+		: 'absolute inset-0 z-0 overflow-hidden',
 )
 
 const tabContentClass = computed(() =>
 	activeTab.value === 'scene'
 		? 'h-full w-full'
-		: 'h-full w-full px-3.5 pt-8 pb-24',
+		: 'min-h-full w-full px-3.5 pt-24 pb-36',
 )
 
 const overlayScrollOptions = {
@@ -141,12 +141,12 @@ onBeforeUnmount(() => {
 <template>
 	<UApp :toaster="{ class: 'z-[9999]' }">
 		<main class="relative h-screen overflow-hidden bg-default text-default">
-			<header class="sticky left-0 top-0 right-0 z-[1] h-12">
+			<header class="fixed left-0 top-0 right-0 z-[2] h-20">
 				<div
-					class="pointer-events-none absolute left-0 right-0 top-0 -bottom-8 bg-[#FAFAFA]/80 backdrop-blur-[40px] mask-[linear-gradient(to_bottom,black_0%,rgba(0,0,0,0.96)_32%,rgba(0,0,0,0.78)_52%,rgba(0,0,0,0.42)_72%,transparent_100%)] dark:bg-[#192024]/85"
+					class="pointer-events-none absolute inset-0 bg-[#FAFAFA]/80 backdrop-blur-[40px] mask-[linear-gradient(to_bottom,black_0%,rgba(0,0,0,0.98)_42%,rgba(0,0,0,0.78)_66%,rgba(0,0,0,0.36)_84%,transparent_100%)] dark:bg-[#192024]/85"
 				/>
 				<div
-					class="relative z-[1] flex h-full items-center justify-between gap-4 px-4 py-4"
+					class="relative z-[1] flex h-12 items-center justify-between gap-4 px-4 py-4"
 				>
 					<div class="min-w-0">
 						<div

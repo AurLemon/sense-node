@@ -32,4 +32,5 @@ private:
   unsigned long tapPulseUntilMs = 0;
   unsigned long tapCooldownUntilMs = 0;
   unsigned long motionStartMs = 0;
+  unsigned long boardMotionCooldownUntilMs = 0;
 };

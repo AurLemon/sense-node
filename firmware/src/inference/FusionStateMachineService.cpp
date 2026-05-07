@@ -6,6 +6,8 @@
 
 namespace
 {
+  constexpr unsigned long kBoardMotionCooldownMs = 3500;
+
   bool isRawLabel(const char *label, const char *expected)
   {
     return label != nullptr && std::strcmp(label, expected) == 0;
@@ -83,6 +85,7 @@ void FusionStateMachineService::reset()
   tapPulseUntilMs = 0;
   tapCooldownUntilMs = 0;
   motionStartMs = 0;
+  boardMotionCooldownUntilMs = 0;
 }
 
 void FusionStateMachineService::enterTapPulse(unsigned long now)
@@ -141,12 +144,12 @@ void FusionStateMachineService::evaluate()
   const bool tapCandidate = modelTapCandidate || impactTapCandidate;
   latestFusion.tapCandidate = tapCandidate;
 
-  const bool modelBoardMotionCandidate =
-      isRawLabel(latestImu.rawMlLabel, "board_motion") &&
-      latestImu.confidence >= 0.75f;
   const bool rawMotionCandidate =
       latestImu.rawMotionActive && latestImu.motionAgeMs >= InteractionConfig::BoardMotionMinimumMs;
   const bool rawStable = latestImu.rawStable;
+  const bool modelBoardMotionCandidate =
+      isRawLabel(latestImu.rawMlLabel, "board_motion") &&
+      latestImu.confidence >= 0.75f && !rawStable;
 
   if (fusionState == FusionState::TapPulse)
   {
@@ -196,6 +199,7 @@ void FusionStateMachineService::evaluate()
     if (rawStableFor(now, InteractionConfig::MotionSettleMs))
     {
       fusionState = FusionState::Idle;
+      boardMotionCooldownUntilMs = now + kBoardMotionCooldownMs;
       latestFusion.finalEvent = FinalEvent::Idle;
       latestFusion.fusionState = fusionState;
       latestFusion.rejected = false;
@@ -206,6 +210,10 @@ void FusionStateMachineService::evaluate()
     if (motionStartMs != 0 && now - motionStartMs > InteractionConfig::MaxMotionHoldMs)
     {
       fusionState = rawStable ? FusionState::Idle : FusionState::Reject;
+      if (fusionState == FusionState::Idle)
+      {
+        boardMotionCooldownUntilMs = now + kBoardMotionCooldownMs;
+      }
       latestFusion.finalEvent = rawStable ? FinalEvent::Idle : FinalEvent::Reject;
       latestFusion.fusionState = fusionState;
       latestFusion.rejected = !rawStable;
@@ -228,6 +236,15 @@ void FusionStateMachineService::evaluate()
     latestFusion.rejected = false;
     latestFusion.cooldownActive = true;
     latestFusion.tapCooldownRemainingMs = tapCooldownUntilMs - now;
+    emitCurrentState();
+    return;
+  }
+
+  if (now < boardMotionCooldownUntilMs && (modelBoardMotionCandidate || rawMotionCandidate))
+  {
+    latestFusion.finalEvent = rawStable ? FinalEvent::Idle : FinalEvent::Reject;
+    latestFusion.fusionState = FusionState::Idle;
+    latestFusion.rejected = !rawStable;
     emitCurrentState();
     return;
   }

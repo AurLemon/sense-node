@@ -1,10 +1,23 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import AppIcon from '../ui/AppIcon.vue'
 import { useI18n } from '../../lib/i18n'
+import { useDeviceStore } from '../../stores/deviceStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 
+const device = useDeviceStore()
 const settings = useSettingsStore()
 const { t } = useI18n()
+
+const expressionSource = computed(() => {
+	if (device.currentFrame?.display_face) {
+		return `${t('settings.expressionSourceNative')} (${device.currentFrame.display_face})`
+	}
+	if (device.currentFrame?.final_event) {
+		return `${t('settings.expressionSourceFallbackFinalEvent')} (${device.currentFrame.final_event})`
+	}
+	return `${t('settings.expressionSourceFallbackStableEvent')} (${device.stableEvent})`
+})
 </script>
 
 <template>
@@ -44,6 +57,14 @@ const { t } = useI18n()
 		<div class="grid min-w-0 gap-1.5">
 			<label class="text-xs text-muted">{{ t('settings.accent') }}</label>
 			<UInput v-model="settings.themeAccent" type="color" />
+		</div>
+		<div class="grid min-w-0 gap-1.5">
+			<label class="text-xs text-muted">{{
+				t('settings.expressionSource')
+			}}</label>
+			<div class="min-h-8 content-center text-sm text-default">
+				{{ expressionSource }}
+			</div>
 		</div>
 		<div
 			class="grid min-w-0 gap-1.5 mt-10 text-slate-400 dark:text-slate-500 text-sm"

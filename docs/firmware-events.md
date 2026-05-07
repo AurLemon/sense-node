@@ -325,3 +325,17 @@ tof, ax, ay, az, gx, gy, gz, uptime, imu_label, imu_confidence, hand_state, moti
 | 字段名        | 含义         |
 | ------------- | ------------ |
 | `final_event` | 当前最终事件 |
+
+## 10. 表情映射
+
+| 最终事件 | 表情 | 说明 |
+| -------- | ---- | ---- |
+| `idle` | `:)` | 默认静止态 |
+| `tap` | `o_o` | 点击瞬态 |
+| `board_motion` | `>_<` | 板体运动态 |
+
+说明：
+
+- `reject` 不显示
+- `unknown` 不显示
+- 该映射用于 firmware OLED 与 Electron 主页 scene 的统一展示

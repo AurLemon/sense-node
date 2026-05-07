@@ -147,6 +147,10 @@ const messages = {
 		'settings.stabilizer': '启用事件稳定器',
 		'settings.accent': '主题强调色',
 		'settings.currentStable': '当前稳定事件',
+		'settings.expressionSource': '当前表情来源',
+		'settings.expressionSourceNative': '本机 display_face',
+		'settings.expressionSourceFallbackFinalEvent': 'Fallback final_event',
+		'settings.expressionSourceFallbackStableEvent': 'Fallback stableEvent',
 		'settings.about.author':
 			'SenseNode 由 AurLemon (Lin Junle) 编写，基于 Electron 开发。',
 		'settings.about.disclaimer':
@@ -307,6 +311,10 @@ const messages = {
 		'settings.stabilizer': 'Enable event stabilizer',
 		'settings.accent': 'Theme accent',
 		'settings.currentStable': 'Current stable event',
+		'settings.expressionSource': 'Current expression source',
+		'settings.expressionSourceNative': 'Native display_face',
+		'settings.expressionSourceFallbackFinalEvent': 'Fallback final_event',
+		'settings.expressionSourceFallbackStableEvent': 'Fallback stableEvent',
 		'settings.about.author':
 			'SenseNode is created by AurLemon (Lin Junle) and built with Electron.',
 		'settings.about.disclaimer':

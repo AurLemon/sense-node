@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { motion } from 'motion-v'
 import * as THREE from 'three'
-import { useI18n } from '../../lib/i18n'
+import { pickPetPhrase } from '../../lib/petPhrases'
 import { useDeviceStore } from '../../stores/deviceStore'
 import { useSerialStore } from '../../stores/serialStore'
 import { useSettingsStore } from '../../stores/settingsStore'
@@ -11,7 +12,6 @@ const canvasHost = ref<HTMLDivElement | null>(null)
 const device = useDeviceStore()
 const serial = useSerialStore()
 const settings = useSettingsStore()
-const { t } = useI18n()
 const isConnected = computed(() => serial.status.state === 'connected')
 
 let renderer: THREE.WebGLRenderer | null = null
@@ -27,11 +27,29 @@ let markerMaterials: THREE.MeshStandardMaterial[] = []
 let resizeObserver: ResizeObserver | null = null
 let animationId = 0
 let targetRotation = new THREE.Euler(0, 0, 0)
+let petPhraseTimer = 0
+let petPhraseHideTimer = 0
+let petPhraseRemoveTimer = 0
+let eventPhraseDebounceTimer = 0
+let faceEventDebounceTimer = 0
 const fixedCameraPosition = new THREE.Vector3(0.02, 1.12, 6.35)
 const fixedCameraTarget = new THREE.Vector3(0.04, 0.1, 0)
+const petPhraseVisibleMs = 5000
+const petPhraseInitialDelayMs = 5000
+const petPhraseMaxIntervalMs = 30000
+const eventPhraseDebounceMs = 2000
 
 const accelText = computed(() => formatVec3(device.currentFrame?.accel))
 const gyroText = computed(() => formatVec3(device.currentFrame?.gyro))
+const finalEvent = computed(
+	() => device.currentFrame?.final_event ?? device.stableEvent,
+)
+const displayedExpression = ref('')
+const faceText = computed(() => resolveFace(displayedExpression.value))
+const petPhrase = ref('')
+const showPetPhrase = ref(false)
+const renderPetPhrase = ref(false)
+let lastPhraseEvent = finalEvent.value
 
 onMounted(() => {
 	if (!canvasHost.value) return
@@ -63,6 +81,7 @@ onMounted(() => {
 	resizeObserver = new ResizeObserver(() => resize())
 	resizeObserver.observe(canvasHost.value)
 	window.addEventListener('resize', resize)
+	schedulePetPhrase(petPhraseInitialDelayMs)
 	resize()
 	animate()
 })
@@ -79,10 +98,54 @@ watch(
 	(themeMode) => applySceneTheme(themeMode),
 )
 
+watch(finalEvent, (event) => {
+	if (!event || event === lastPhraseEvent) {
+		return
+	}
+	window.clearTimeout(eventPhraseDebounceTimer)
+	eventPhraseDebounceTimer = window.setTimeout(() => {
+		if (finalEvent.value !== event || event === lastPhraseEvent) {
+			return
+		}
+		lastPhraseEvent = event
+		showNextPetPhrase()
+	}, eventPhraseDebounceMs)
+})
+
+watch(
+	() =>
+		[
+			device.currentFrame?.final_event,
+			device.currentFrame?.display_face,
+			device.stableEvent,
+		] as const,
+	([event, displayFace, stableEvent]) => {
+		const nextExpression = displayFace ?? event ?? stableEvent
+		if (!nextExpression || nextExpression === displayedExpression.value) {
+			return
+		}
+
+		window.clearTimeout(faceEventDebounceTimer)
+		faceEventDebounceTimer = window.setTimeout(() => {
+			const currentEvent = device.currentFrame?.final_event
+			const currentDisplayFace = device.currentFrame?.display_face
+			const currentStableEvent = device.stableEvent
+			const currentExpression =
+				currentDisplayFace ?? currentEvent ?? currentStableEvent
+
+			if (currentExpression === nextExpression) {
+				displayedExpression.value = nextExpression
+			}
+		}, eventPhraseDebounceMs)
+	},
+	{ immediate: true },
+)
+
 onBeforeUnmount(() => {
 	resizeObserver?.disconnect()
 	resizeObserver = null
 	window.removeEventListener('resize', resize)
+	clearPetPhraseTimers()
 	cancelAnimationFrame(animationId)
 	renderer?.dispose()
 })
@@ -217,6 +280,62 @@ function clampAngle(value: number): number {
 	return THREE.MathUtils.clamp(value, -Math.PI * 0.7, Math.PI * 0.7)
 }
 
+function resolveFace(event?: string): string {
+	if (!event || event === 'warming_up') return ''
+	if (event === 'tap') return 'o_o'
+	if (event === 'board_motion') return '>_<'
+	if (event === 'idle') return 'OmO'
+	if (event === 'reject' || event === 'unknown') return 'OmO'
+	if (event.length >= 3 && event.length <= 4) return event
+	return ''
+}
+
+function schedulePetPhrase(delayMs = nextPetPhraseDelay()): void {
+	window.clearTimeout(petPhraseTimer)
+	petPhraseTimer = window.setTimeout(showNextPetPhrase, delayMs)
+}
+
+function showNextPetPhrase(): void {
+	window.clearTimeout(petPhraseTimer)
+	window.clearTimeout(petPhraseHideTimer)
+	window.clearTimeout(petPhraseRemoveTimer)
+
+	if (!isConnected.value) {
+		showPetPhrase.value = false
+		schedulePetPhrase()
+		return
+	}
+
+	petPhrase.value = pickPetPhrase(
+		settings.locale,
+		finalEvent.value,
+		petPhrase.value,
+	)
+	window.clearTimeout(petPhraseRemoveTimer)
+	renderPetPhrase.value = true
+	showPetPhrase.value = true
+	window.clearTimeout(petPhraseHideTimer)
+	petPhraseHideTimer = window.setTimeout(() => {
+		showPetPhrase.value = false
+		petPhraseRemoveTimer = window.setTimeout(() => {
+			renderPetPhrase.value = false
+			schedulePetPhrase()
+		}, 380)
+	}, petPhraseVisibleMs)
+}
+
+function nextPetPhraseDelay(): number {
+	return 1 + Math.floor(Math.random() * petPhraseMaxIntervalMs)
+}
+
+function clearPetPhraseTimers(): void {
+	window.clearTimeout(petPhraseTimer)
+	window.clearTimeout(petPhraseHideTimer)
+	window.clearTimeout(petPhraseRemoveTimer)
+	window.clearTimeout(eventPhraseDebounceTimer)
+	window.clearTimeout(faceEventDebounceTimer)
+}
+
 function applySceneTheme(themeMode: 'dark' | 'light'): void {
 	if (!scene || !keyLight || !fillLight || !grid) return
 
@@ -283,6 +402,34 @@ function setBoardTheme(
 <template>
 	<div class="relative h-full w-full overflow-hidden">
 		<div ref="canvasHost" class="h-full w-full" />
+		<div
+			v-if="isConnected && faceText"
+			class="pointer-events-none absolute left-0 right-0 top-16 grid justify-items-center px-4"
+		>
+			<motion.div
+				:key="faceText"
+				class="select-none px-4 py-2 text-center text-4xl font-black tracking-widest text-slate-800 dark:text-slate-200"
+				:initial="{ opacity: 0, x: -3, filter: 'blur(6px)' }"
+				:animate="{ opacity: 1, x: 0, filter: 'blur(0px)' }"
+				:transition="{ duration: 0.4, ease: 'easeOut' }"
+			>
+				{{ faceText }}
+			</motion.div>
+			<motion.div
+				v-if="renderPetPhrase"
+				:key="petPhrase"
+				class="text-center text-sm text-muted"
+				:initial="{ opacity: 0, y: 8, filter: 'blur(8px)' }"
+				:animate="
+					showPetPhrase
+						? { opacity: 1, y: 0, filter: 'blur(0px)' }
+						: { opacity: 0, y: -6, filter: 'blur(8px)' }
+				"
+				:transition="{ duration: 0.36, ease: 'easeOut' }"
+			>
+				{{ petPhrase }}
+			</motion.div>
+		</div>
 		<div
 			class="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2"
 		>

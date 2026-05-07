@@ -21,6 +21,7 @@ export interface EventStabilizerOptions {
 	idleMs: number
 	tapHoldMs: number
 	cooldownMs: number
+	boardMotionCooldownMs: number
 }
 
 const defaultOptions: EventStabilizerOptions = {
@@ -29,6 +30,7 @@ const defaultOptions: EventStabilizerOptions = {
 	idleMs: 900,
 	tapHoldMs: 450,
 	cooldownMs: 700,
+	boardMotionCooldownMs: 1400,
 }
 
 export class EventStabilizer {
@@ -36,6 +38,7 @@ export class EventStabilizer {
 	private pendingEvent: StableEvent | null = null
 	private pendingSince = 0
 	private boardMotionCount = 0
+	private boardMotionCooldownUntil = 0
 	private lastTransitionAt = Date.now()
 	private holdUntil = 0
 	private cooldownUntil = 0
@@ -90,10 +93,19 @@ export class EventStabilizer {
 		}
 
 		if (rawEvent === 'board_motion') {
+			if (now < this.boardMotionCooldownUntil && this.stableEvent === 'idle') {
+				return this.capture(
+					rawEvent,
+					confidence,
+					'cooldown',
+					'board motion cooldown',
+				)
+			}
 			this.boardMotionCount += 1
 			if (this.boardMotionCount >= this.options.boardMotionFrames) {
 				this.transition('board_motion', now)
 				this.cooldownUntil = now + this.options.cooldownMs
+				this.boardMotionCooldownUntil = now + this.options.boardMotionCooldownMs
 				reason = 'board motion confirmed'
 			} else {
 				this.pendingEvent = 'board_motion'
@@ -112,6 +124,7 @@ export class EventStabilizer {
 			}
 			if (now - this.pendingSince >= this.options.idleMs) {
 				this.transition('idle', now)
+				this.boardMotionCooldownUntil = now + this.options.boardMotionCooldownMs
 				reason = 'idle decay confirmed'
 			} else {
 				state = 'pending'
@@ -136,6 +149,9 @@ export class EventStabilizer {
 		this.stableEvent = event
 		this.pendingEvent = null
 		this.pendingSince = 0
+		if (event !== 'board_motion') {
+			this.boardMotionCount = 0
+		}
 		this.lastTransitionAt = now
 	}
 

@@ -1,5 +1,6 @@
 #include "hardware/Hardware.h"
 
+#include "display/ExpressionScheme.h"
 #include "events/EventBus.h"
 
 namespace
@@ -16,6 +17,13 @@ namespace
   constexpr uint16_t kTofOutOfRangeMm = 8191;
   constexpr uint8_t kMpuAddressPrimary = 0x68;
   constexpr uint8_t kMpuAddressSecondary = 0x69;
+  constexpr unsigned long kStartupBlinkIntervalMs = 320;
+  constexpr unsigned long kStartupReadyDurationMs = 1800;
+  constexpr unsigned long kStartupBlankMs = 350;
+  constexpr unsigned long kHandshakeRepeatIntervalMs = 1500;
+  constexpr char kHandshakeHello[] = "SN_HELLO";
+  constexpr char kHandshakeAck[] = "SN_ACK";
+
 }
 
 void Hardware::beginModeSwitch()
@@ -119,6 +127,23 @@ void Hardware::beginSensors(bool verbose)
   }
 }
 
+void Hardware::beginStartupSequence()
+{
+  startupSequenceEnabled = true;
+  startupSequenceFinished = false;
+  startupSequenceReadyVisible = false;
+  startupHandshakeSeen = false;
+  startupHandshakeAnimationActive = false;
+  startupSequenceStartMs = millis();
+  startupSequenceReadyAtMs = 0;
+  startupSequenceBlankUntilMs = 0;
+  startupSequenceBlinkAtMs = millis();
+  startupLastHandshakeMs = millis();
+  startupSequenceBlinkOn = true;
+  startupHandshakeBlinkOn = true;
+  startupHandshakeAnimationUntilMs = 0;
+}
+
 SensorFrame Hardware::readSensors()
 {
   SensorFrame frame{};
@@ -129,13 +154,12 @@ SensorFrame Hardware::readSensors()
 
 void Hardware::renderDemo(const SensorFrame &current, const char *eventLabel)
 {
-  if (!displayReady)
+  if (!displayReady || (startupSequenceEnabled && !startupSequenceFinished))
   {
     return;
   }
 
   char topLine[16];
-  char line[32];
   const char *systemLabel = systemHealthy ? "[OK]" : "[ERR]";
 
   if (current.tofValid && current.tofMm < kTofOutOfRangeMm)
@@ -156,29 +180,15 @@ void Hardware::renderDemo(const SensorFrame &current, const char *eventLabel)
   const uint8_t tofX = statusX > (tofWidth + 3) ? statusX - tofWidth - 3 : 0;
   display.drawStr(tofX, 10, topLine);
   display.drawStr(statusX, 10, systemLabel);
-  display.drawStr(0, 24, eventLabel);
 
-  if (current.imuValid)
+  const char *face = resolveRuntimeExpressionFace(eventLabel, millis());
+  if (face != nullptr)
   {
-    snprintf(line, sizeof(line), "A: %+.1f %+.1f %+.1f", current.accel.acceleration.x,
-             current.accel.acceleration.y, current.accel.acceleration.z);
+    display.setFont(u8g2_font_logisoso24_tr);
+    const uint8_t faceWidth = display.getStrWidth(face);
+    const uint8_t faceX = faceWidth < 128 ? (128 - faceWidth) / 2 : 0;
+    display.drawStr(faceX, 22, face);
   }
-  else
-  {
-    snprintf(line, sizeof(line), "A: --");
-  }
-  display.drawStr(0, 38, line);
-
-  if (current.imuValid)
-  {
-    snprintf(line, sizeof(line), "G: %+.1f %+.1f %+.1f", current.gyro.gyro.x, current.gyro.gyro.y,
-             current.gyro.gyro.z);
-  }
-  else
-  {
-    snprintf(line, sizeof(line), "G: --");
-  }
-  display.drawStr(0, 52, line);
 
   display.sendBuffer();
 }
@@ -195,6 +205,147 @@ void Hardware::renderCaptureMode()
   display.setFontPosTop();
   display.drawStr(0, 24, "Capture Mode");
   display.sendBuffer();
+}
+
+bool Hardware::isStartupSequenceActive(unsigned long now) const
+{
+  (void)now;
+  if (!startupSequenceEnabled || startupSequenceFinished)
+  {
+    return false;
+  }
+  return true;
+}
+
+bool Hardware::shouldShowHandshakeAnimation() const
+{
+  return false;
+}
+
+void Hardware::renderStartupSequence(unsigned long now)
+{
+  if (!displayReady || !startupSequenceEnabled || startupSequenceFinished)
+  {
+    return;
+  }
+
+  if (!startupSequenceReadyVisible)
+  {
+    startupSequenceReadyVisible = true;
+    startupSequenceReadyAtMs = now;
+  }
+  if (startupSequenceReadyVisible && startupSequenceBlankUntilMs == 0 &&
+      now - startupSequenceStartMs >= kStartupReadyDurationMs)
+  {
+    startupSequenceBlankUntilMs = now + kStartupBlankMs;
+    return;
+  }
+
+  if (startupSequenceBlankUntilMs != 0)
+  {
+    if (now >= startupSequenceBlankUntilMs)
+    {
+      startupSequenceFinished = true;
+      display.clearBuffer();
+      display.sendBuffer();
+      return;
+    }
+
+    display.clearBuffer();
+    display.sendBuffer();
+    return;
+  }
+
+  if (now - startupSequenceBlinkAtMs >= kStartupBlinkIntervalMs)
+  {
+    startupSequenceBlinkAtMs = now;
+    startupSequenceBlinkOn = !startupSequenceBlinkOn;
+  }
+
+  display.clearBuffer();
+  if (startupSequenceBlinkOn)
+  {
+    display.setFont(u8g2_font_helvB18_tr);
+    display.setFontPosTop();
+    display.drawStr(0, 24, "READY");
+  }
+
+  display.sendBuffer();
+}
+
+void Hardware::renderHandshakeAnimation(unsigned long now)
+{
+  if (!displayReady || !startupHandshakeAnimationActive)
+  {
+    return;
+  }
+
+  if (now >= startupHandshakeAnimationUntilMs)
+  {
+    startupHandshakeAnimationActive = false;
+    startupSequenceBlankUntilMs = millis() + kStartupBlankMs;
+    display.clearBuffer();
+    display.sendBuffer();
+    return;
+  }
+
+  if (now - startupSequenceBlinkAtMs >= kStartupBlinkIntervalMs)
+  {
+    startupSequenceBlinkAtMs = now;
+    startupHandshakeBlinkOn = !startupHandshakeBlinkOn;
+  }
+
+  display.clearBuffer();
+  display.setFont(u8g2_font_6x10_tr);
+  display.setFontPosTop();
+  display.drawStr(0, 8, "Connected");
+  display.drawStr(0, 24, startupHandshakeBlinkOn ? "   [==>]" : "    [>]");
+  display.drawStr(0, 40, "Handshake OK");
+  display.drawStr(0, 54, "Back to demo...");
+  display.sendBuffer();
+}
+
+void Hardware::pollSerialControl()
+{
+  while (Serial.available() > 0)
+  {
+    const String line = Serial.readStringUntil('\n');
+    String trimmed = line;
+    trimmed.trim();
+    if (trimmed.length() == 0)
+    {
+      continue;
+    }
+    handleHandshakeToken(trimmed.c_str());
+  }
+
+  const unsigned long now = millis();
+  if (startupSequenceEnabled && !startupSequenceFinished && !startupHandshakeSeen &&
+      now - startupLastHandshakeMs >= kHandshakeRepeatIntervalMs)
+  {
+    startupLastHandshakeMs = now;
+    emitHandshake(kHandshakeHello);
+  }
+}
+
+void Hardware::handleHandshakeToken(const char *line)
+{
+  if (strcmp(line, kHandshakeHello) == 0)
+  {
+    startupHandshakeSeen = true;
+    emitHandshake(kHandshakeAck);
+    return;
+  }
+
+  if (strcmp(line, kHandshakeAck) == 0)
+  {
+    startupHandshakeSeen = true;
+  }
+}
+
+void Hardware::emitHandshake(const char *kind)
+{
+  Serial.println(kind);
 }
 
 void Hardware::updateUserLed(AppMode mode)

@@ -71,6 +71,7 @@ export class SerialService extends EventEmitter {
 					reject(error)
 					return
 				}
+				this.sendHandshake('SN_HELLO')
 				resolve()
 			})
 		})
@@ -118,6 +119,17 @@ export class SerialService extends EventEmitter {
 	private handleLine(line: string): void {
 		this.emitLine('info', line)
 		if (this.paused) {
+			return
+		}
+
+		const trimmed = line.trim()
+		if (trimmed === 'SN_HELLO') {
+			this.sendHandshake('SN_ACK')
+			this.emit('status', this.getStatus('connected'))
+			return
+		}
+		if (trimmed === 'SN_ACK') {
+			this.emit('status', this.getStatus('connected'))
 			return
 		}
 
@@ -206,5 +218,12 @@ export class SerialService extends EventEmitter {
 			line,
 			message,
 		})
+	}
+
+	private sendHandshake(token: 'SN_HELLO' | 'SN_ACK'): void {
+		if (!this.port?.isOpen) {
+			return
+		}
+		this.port.write(`${token}\n`)
 	}
 }

@@ -31,4 +31,5 @@ private:
   unsigned long lastSampleMs = 0;
   unsigned long lastDemoSerialMs = 0;
   unsigned long lastCaptureRenderMs = 0;
+  bool startupDisplayWasActive = false;
 };
