@@ -20,7 +20,7 @@ permissions:
 jobs:
   build:
     name: App Build
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     defaults:
       run:
         working-directory: app
@@ -63,4 +63,20 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build app
-        run: pnpm build
+        run: pnpm make
+
+      - name: Upload unpacked app
+        uses: actions/upload-artifact@v4
+        with:
+          name: sensenode-win32-x64-unpacked
+          path: app/out/SenseNode-win32-x64
+
+      - name: Upload setup installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: sensenode-setup-installer
+          path: |
+            app/out/make/**/*.exe
+            app/out/make/**/*.nupkg
+            app/out/make/**/*.msi
+            app/out/make/**/*.zip
