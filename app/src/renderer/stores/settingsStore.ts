@@ -7,7 +7,7 @@ export type ThemeMode = EffectiveThemeMode | 'system'
 
 const storageKeys = {
 	locale: 'sensenode.locale',
-	themeMode: 'sensenode.themeMode.v3',
+	themeMode: 'sensenode.themeMode.v4',
 } as const
 
 function readStoredValue<T extends string>(key: string, fallback: T): T {
