@@ -50,6 +50,7 @@ const petPhrase = ref('')
 const showPetPhrase = ref(false)
 const renderPetPhrase = ref(false)
 let lastPhraseEvent = finalEvent.value
+let pendingExpression = ''
 
 onMounted(() => {
 	if (!canvasHost.value) return
@@ -124,6 +125,15 @@ watch(
 		if (!nextExpression || nextExpression === displayedExpression.value) {
 			return
 		}
+		if (!displayedExpression.value) {
+			displayedExpression.value = nextExpression
+			pendingExpression = nextExpression
+			return
+		}
+		if (nextExpression === pendingExpression) {
+			return
+		}
+		pendingExpression = nextExpression
 
 		window.clearTimeout(faceEventDebounceTimer)
 		faceEventDebounceTimer = window.setTimeout(() => {
@@ -135,6 +145,7 @@ watch(
 
 			if (currentExpression === nextExpression) {
 				displayedExpression.value = nextExpression
+				pendingExpression = nextExpression
 			}
 		}, eventPhraseDebounceMs)
 	},

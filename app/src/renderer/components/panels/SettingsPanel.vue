@@ -11,12 +11,12 @@ const { t } = useI18n()
 
 const expressionSource = computed(() => {
 	if (device.currentFrame?.display_face) {
-		return `${t('settings.expressionSourceNative')} (${device.currentFrame.display_face})`
+		return `${t('settings.expressionSourceDevice')} (${device.currentFrame.display_face})`
 	}
 	if (device.currentFrame?.final_event) {
-		return `${t('settings.expressionSourceFallbackFinalEvent')} (${device.currentFrame.final_event})`
+		return `${t('settings.expressionSourceLocal')} (${device.currentFrame.final_event})`
 	}
-	return `${t('settings.expressionSourceFallbackStableEvent')} (${device.stableEvent})`
+	return `${t('settings.expressionSourceLocal')} (${device.stableEvent})`
 })
 </script>
 
