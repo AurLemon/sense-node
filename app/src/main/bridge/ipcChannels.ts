@@ -10,6 +10,8 @@ export const ipcChannels = {
 	appShowMainWindow: 'sensenode:app:show-main-window',
 	appSetLocale: 'sensenode:app:set-locale',
 	eventNotifyStable: 'sensenode:event:notify-stable',
+	eventLogsList: 'sensenode:event:logs:list',
+	eventLogsAdd: 'sensenode:event:logs:add',
 	eventTasksList: 'sensenode:event:tasks:list',
 	eventTasksUpsert: 'sensenode:event:tasks:upsert',
 	eventTasksRemove: 'sensenode:event:tasks:remove',

@@ -17,6 +17,7 @@ export const useDeviceStore = defineStore('device', () => {
 	const currentFrame = ref<SenseNodeFrame | null>(null)
 	const frames = ref<SenseNodeFrame[]>([])
 	const events = ref<SenseNodeEventLog[]>([])
+	const persistedEvents = ref<SenseNodeEventLog[]>([])
 	const stabilizerSnapshot = ref<StabilizerSnapshot>(stabilizer.getSnapshot())
 	const source = ref<DataSourceType | null>(null)
 	const stabilizerEnabled = ref(true)
@@ -77,17 +78,28 @@ export const useDeviceStore = defineStore('device', () => {
 		if (events.value.length > 100) {
 			events.value.length = 100
 		}
+		persistedEvents.value.unshift(log)
+		if (persistedEvents.value.length > 200) {
+			persistedEvents.value.length = 200
+		}
+		void window.sensenode.events.addLog(log)
+	}
+
+	async function loadPersistedEvents(limit = 200): Promise<void> {
+		persistedEvents.value = await window.sensenode.events.listLogs(limit)
 	}
 
 	return {
 		currentFrame,
 		frames,
 		events,
+		persistedEvents,
 		stabilizerSnapshot,
 		source,
 		stabilizerEnabled,
 		stableEvent,
 		rawEvent,
 		ingestFrame,
+		loadPersistedEvents,
 	}
 })

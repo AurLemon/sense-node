@@ -36,6 +36,20 @@ declare global {
 				showMainWindow(): Promise<void>
 				setLocale(locale: string): Promise<void>
 			}
+			events: {
+				notifyStableEvent(event: string): Promise<void>
+				listLogs(
+					limit?: number,
+				): Promise<import('./shared/types/sensenode').SenseNodeEventLog[]>
+				addLog(
+					log: import('./shared/types/sensenode').SenseNodeEventLog,
+				): Promise<import('./shared/types/sensenode').SenseNodeEventLog>
+				listTasks(): Promise<import('./shared/types/sensenode').EventTask[]>
+				saveTask(
+					task: import('./shared/types/sensenode').EventTask,
+				): Promise<import('./shared/types/sensenode').EventTask>
+				removeTask(id: string): Promise<void>
+			}
 		}
 	}
 }

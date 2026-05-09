@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import SerialConnectionBar from '../controls/SerialConnectionBar.vue'
 import DeviceTelemetryChart from './DeviceTelemetryChart.vue'
+import EventLogPanel from './EventLogPanel.vue'
 import EventTimelinePanel from './EventTimelinePanel.vue'
 import MetricGrid from './MetricGrid.vue'
 import SerialMonitorPanel from './SerialMonitorPanel.vue'
@@ -22,6 +23,11 @@ const serialModalUi = {
 	overlay: 'fixed inset-0 z-[120] bg-default/65',
 	content: 'z-[130] max-w-4xl max-h-[calc(100dvh-8rem)] overflow-hidden',
 	body: 'h-[min(62vh,calc(100dvh-13rem))] min-h-0',
+}
+const logModalUi = {
+	overlay: 'fixed inset-0 z-[120] bg-default/65',
+	content: 'z-[130] max-w-6xl max-h-[calc(100dvh-8rem)] overflow-hidden',
+	body: 'h-[min(66vh,calc(100dvh-13rem))] min-h-0',
 }
 
 function connectedValue(
@@ -138,6 +144,27 @@ const metrics = computed(() => [
 				<SerialConnectionBar />
 			</div>
 			<div class="flex items-center gap-1.5">
+				<UModal
+					:title="t('events.logTitle')"
+					:overlay="true"
+					:portal="true"
+					:ui="logModalUi"
+				>
+					<UTooltip :text="t('events.logTitle')">
+						<UButton
+							icon="i-lucide-database"
+							color="neutral"
+							variant="ghost"
+							size="sm"
+							type="button"
+							:aria-label="t('events.logTitle')"
+						/>
+					</UTooltip>
+
+					<template #body>
+						<EventLogPanel />
+					</template>
+				</UModal>
 				<UModal
 					:title="t('tab.events')"
 					:overlay="true"

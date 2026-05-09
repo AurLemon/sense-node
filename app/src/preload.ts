@@ -3,6 +3,7 @@ import { ipcChannels } from './main/bridge/ipcChannels'
 import type {
 	DataSourceStatus,
 	EventTask,
+	SenseNodeEventLog,
 	SenseNodeFrame,
 	SerialLineEntry,
 	SerialPortInfo,
@@ -48,6 +49,10 @@ contextBridge.exposeInMainWorld('sensenode', {
 	events: {
 		notifyStableEvent: (event: string): Promise<void> =>
 			ipcRenderer.invoke(ipcChannels.eventNotifyStable, event),
+		listLogs: (limit?: number): Promise<SenseNodeEventLog[]> =>
+			ipcRenderer.invoke(ipcChannels.eventLogsList, limit),
+		addLog: (log: SenseNodeEventLog): Promise<SenseNodeEventLog> =>
+			ipcRenderer.invoke(ipcChannels.eventLogsAdd, log),
 		listTasks: (): Promise<EventTask[]> =>
 			ipcRenderer.invoke(ipcChannels.eventTasksList),
 		saveTask: (task: EventTask): Promise<EventTask> =>

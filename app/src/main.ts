@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu, ipcMain, nativeTheme } from 'electron'
 import started from 'electron-squirrel-startup'
 import { ipcChannels } from './main/bridge/ipcChannels'
 import { executeEventTask } from './main/events/eventExecutor'
+import { EventLogStore } from './main/storage/eventLogStore'
 import { EventTaskStore } from './main/storage/eventTaskStore'
 import { listSerialPorts } from './main/serial/serialScanner'
 import { SerialService } from './main/serial/serialService'
@@ -14,7 +15,7 @@ import {
 } from './main/windows/tray'
 import { getAppIcon } from './main/windows/appIcon'
 import { normalizeLocale } from './shared/i18n'
-import type { StableEvent } from './shared/types/sensenode'
+import type { SenseNodeEventLog, StableEvent } from './shared/types/sensenode'
 
 if (started) {
 	app.quit()
@@ -25,6 +26,7 @@ app.setAppUserModelId('com.aurlemon.sensenode')
 let mainWindow: BrowserWindow | null = null
 let isQuitting = false
 const serialService = new SerialService()
+const eventLogStore = new EventLogStore()
 const eventTaskStore = new EventTaskStore()
 const eventThrottle = new Map<string, number>()
 const taskThrottle = new Map<string, number>()
@@ -92,6 +94,17 @@ function registerIpc(): void {
 			handleStableEvent(stableEvent)
 		},
 	)
+	ipcMain.handle(ipcChannels.eventLogsList, (_event, limit?: number) =>
+		eventLogStore.list(limit),
+	)
+	ipcMain.handle(ipcChannels.eventLogsAdd, (_event, log: SenseNodeEventLog) => {
+		try {
+			return eventLogStore.add(log)
+		} catch (error) {
+			console.error('[main] event log add failed:', error)
+			throw error
+		}
+	})
 }
 
 function handleStableEvent(stableEvent: string): void {

@@ -20,7 +20,7 @@ function readStoredValue<T extends string>(key: string, fallback: T): T {
 }
 
 function readStoredThemeMode(): ThemeMode {
-	const value = readStoredValue(storageKeys.themeMode, 'system')
+	const value = readStoredValue<ThemeMode>(storageKeys.themeMode, 'system')
 	if (value === 'dark' || value === 'light' || value === 'system') {
 		return value
 	}
